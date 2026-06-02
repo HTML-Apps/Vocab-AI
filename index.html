@@ -1,808 +1,649 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>COS-Scoreboard</title>
+    <title>Vocab AI - Minimalistischer Fokus</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#120b29">
 
-    <link rel="icon" href="pokal.png" type="image/png">
-    <link rel="manifest" href="manifest.json">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        app: {
+                            bg: '#f4f4f9', 
+                            darkbg: '#120b29', 
+                            card: '#ffffff',
+                            darkcard: '#241452', 
+                            accent: '#7A3FFF', 
+                            accentHover: '#5e2be2',
+                            textDark: '#e2e8f0',
+                            textLight: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        /* --- CSS VARIABLES & THEMES --- OmSPwCQUtVDnCcNp https://supabase.com/dashboard/project/qmgmvweupxffxexlovir/editor/17544?schema=public */
-        :root {
-            --bg-color: #f4f4f9;
-            --surface-color: #ffffff;
-            --text-color: #333333;
-            --text-muted: #666666;
-            --primary-color: #8b5a2b; /* Kaffeebraun */
-            --border-color: #dddddd;
-            --star-active: #ffb400;
-            --star-inactive: #e0e0e0;
-        }
-
-        [data-theme="dark"] {
-            --bg-color: #121212;
-            --surface-color: #1e1e1e;
-            --text-color: #e0e0e0;
-            --text-muted: #aaaaaa;
-            --primary-color: #d2a679;
-            --border-color: #333333;
-            --star-inactive: #444444;
-        }
-
-        /* --- BASICS --- */
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { 
-            margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); 
-            display: flex; justify-content: center; transition: background-color 0.3s;
-        }
-        
-        /* App Container (Portrait Mode Constraint) */
-        #app { width: 100%; min-height: 100vh; background-color: var(--surface-color); padding: 20px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-
-        /* --- HEADER --- */
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        h1 { margin: 0; font-size: 24px; color: var(--primary-color); height: 35px;}
-        .theme-toggle { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-color); padding: 0;}
-
-        /* --- TABS --- */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { 
-            flex: 1; padding: 10px; border: 1px solid var(--border-color); background: var(--surface-color); 
-            color: var(--text-color); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
-        }
-        .tab-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        /* --- FORMS & UI --- */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
-        select, input, textarea { 
-            width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; 
-            background: var(--bg-color); color: var(--text-color); font-size: 16px;
-        }
-        button.primary { 
-            width: 100%; padding: 15px; background: var(--primary-color); color: white; 
-            border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
-        .add-row { display: flex; gap: 10px; margin-top: 10px; align-items: stretch; }
-        .add-row input { flex: 1; }
-        .add-row button { padding: 0 15px; background: var(--text-muted); color: white; border: none; border-radius: 8px; cursor: pointer; }
-
-        /* --- STARS --- */
-        .rating-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; padding: 8px; background: var(--bg-color); border-radius: 8px; }
-        .stars { display: flex; gap: 5px; font-size: 24px; /*cursor: pointer;*/ color: var(--star-inactive); }
-        .star.active { color: var(--star-active); }
-        .overall-score { font-size: 18px; font-weight: bold; color: var(--primary-color); text-align: center; margin: 15px 0; }
-
-        /* --- FILTER TAGS (Bestenliste) --- */
-        .filter-tags { display: flex; gap: 8px; margin-bottom: 15px; }
-        .filter-btn {
-            padding: 6px 14px; border: 1px solid var(--border-color); border-radius: 20px;
-            background: var(--bg-color); color: var(--text-color); cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s;
-        }
-        .filter-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-
-        /* --- MODALS (Overlays) --- */
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); 
-            display: flex; justify-content: center; align-items: center; z-index: 1000;
-        }
-        .modal { background: var(--surface-color); padding: 15px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
-        .d-none { display: none !important; }
-
-        #willkommen { top: 80px; position: absolute;}
-
-        #verstanden { top: 80px; position: absolute;}
-        
-        /* --- TEAM TAB --- ☰ */
-        .leaderboard-item { display: flex; justify-content: space-between; padding-top: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-        .leaderboard-item:last-child { border-bottom: none; }
-        .rank { font-weight: bold; color: var(--primary-color); margin-right: 15px; }
-
-        #app {
-            touch-action: pan-y; /* Erlaubt vertikales Scrollen, blockiert aber browser-eigenes horizontales Swipen */
-            user-select: none;   /* Verhindert, dass beim Swipen Text markiert wird <p style="font-weight: bold; font-size: 14px;">Bewertung:</p>*/
-        }
-
+        body { -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .perspective { perspective: 1000px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .flip-transition { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
+        .swipe-left { animation: swipeLeftOut 0.3s forwards; }
+        .swipe-right { animation: swipeRightOut 0.3s forwards; }
+        @keyframes swipeLeftOut { to { transform: translateX(-100%) rotate(-10deg); opacity: 0; } }
+        @keyframes swipeRightOut { to { transform: translateX(100%) rotate(10deg); opacity: 0; } }
     </style>
 </head>
-<body>
+<body class="bg-app-bg dark:bg-app-darkbg text-app-textLight dark:text-app-textDark transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
-    <div id="loginModal" class="modal-overlay d-none">
-        <div id="willkommen" class="modal">
-            <h2>Willkommen beim <br> COS-Scoreboard! ☕</h2>
-            <p>Bitte suche dir einmalig einen Nutzernamen aus oder gebe deinen Nutzernamen ein.</p>
-            <input type="text" id="usernameInput" placeholder="Dein Name..." style="margin-bottom: 15px;">
-            <button class="primary" onclick="saveUsername()">Los geht's</button>
+    <!-- Versteckter File-Input für den Backup-Import -->
+    <input type="file" id="backup-input" class="hidden" accept=".json" onchange="importData(event)">
+
+    <!-- Header -->
+    <header id="main-header" class="flex justify-between items-center p-6 pb-2 z-10 hidden">
+        <h1 class="text-xl font-bold tracking-tight" id="header-title">Vocab AI</h1>
+        <div class="flex gap-4 items-center">
+            <!-- Backup Import/Export -->
+            <button onclick="triggerImport()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup importieren">
+                <i class="fa-solid fa-upload text-lg"></i>
+            </button>
+            <button onclick="downloadData()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup exportieren">
+                <i class="fa-solid fa-download text-lg"></i>
+            </button>
+            <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition">
+                <i class="fa-solid fa-moon text-lg" id="theme-icon"></i>
+            </button>
         </div>
-    </div>
+    </header>
 
-    <div id="hintModal" class="modal-overlay d-none">
-        <div id="verstanden" class="modal" style="text-align: left;">
-            <h2 style="text-align: center;">So funktioniert's:</h2>
-
-                <p><strong>Schritt 1:</strong> Wähle zur Bewertung den Reiter "Kaffee" oder "Espresso".</p>
-                <p><strong>Schritt 2:</strong> Wähle eine Sorte aus dem Dropdown aus oder füge eine neue "+" hinzu.</p>
-                <p><strong>Schritt 3:</strong> Sterne vergeben (Stärke, Geschmack, Aroma etc.) & speichern.</p>
-                <p><strong>Schritt 4:</strong> Checke das Team-Ranking im Reiter "Team" oder deine persönlichen Knaller unter "Favoriten"!</p>
-                <p><strong>Schritt 5:</strong> Klicke das ☕-Icon in der Ecke für den Dark/Light-Mode</p>
-
-            <button class="primary" onclick="closeHint()">Verstanden 🤌🏻</button>
-        </div>
-    </div>
-
-    <div id="notesModal" class="modal-overlay d-none">
-        <div class="modal" style="text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
-            <h2 id="notesModalTitle" style="text-align: center; margin-top: 0;">Kommentare</h2>
-            <div id="notesModalContent" style="overflow-y: auto; flex: 1; margin-bottom: 15px;">
-                </div>
-            <button class="primary" onclick="closeNotesModal()">Schließen</button>
-        </div>
-    </div>
-
-    <div id="infoModal" class="modal-overlay d-none">
-        <div class="modal" style="text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
-            <h2 style="text-align: center; margin-top: 0;">ℹ️ Information</h2>
-            <div id="infoModalContent" style="overflow-y: auto; flex: 1; margin-bottom: 15px;">
-                </div>
-            <button class="primary" onclick="closeInfoModal()">Schließen</button>
-        </div>
-    </div>
-
-    <div id="app">
-        <header>
-            <h1 id="greetingHeader" onclick="openInfoModal()" style="cursor: pointer; display: inline-block;">≡ Hallo</h1>
-            <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">☕</button>
-        </header>
-
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('kaffee', event)">Kaffee</button>
-            <button class="tab-btn" onclick="switchTab('espresso', event)">Espresso</button>
-            <button class="tab-btn" onclick="switchTab('personal', event)">Favoriten</button>
-            <button class="tab-btn" onclick="switchTab('team', event)">Team</button>
-        </div>
-
-        <div id="ratingSection">
-            <div class="form-group">
-                <label id="typeLabel">Kaffeesorte auswählen:</label>
-                <div style="display: flex; gap: 10px;">
-                    <select id="varietySelect" onchange="checkExistingRating()" style="flex: 1;">
-                        <option value="">Lade Sorten...</option>
-                    </select>
-                    <button onclick="addNewVarietyViaPrompt()" style="padding: 0 15px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); cursor: pointer; font-weight: bold; line-height: 1;">➕</button>
-                </div>
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0 pb-24" id="main-container">
+        
+        <!-- View: Onboarding -->
+        <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-app-bg dark:bg-app-darkbg z-50">
+            <div class="absolute top-6 right-6 flex gap-4 items-center">
+                <button onclick="triggerImport()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup importieren"><i class="fa-solid fa-upload text-xl"></i></button>
+                <button onclick="downloadData()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup exportieren"><i class="fa-solid fa-download text-xl"></i></button>
+                <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition"><i class="fa-solid fa-moon text-xl" id="theme-icon-onboarding"></i></button>
             </div>
-
-            <div id="starContainer"></div>
-
-            <div class="form-group">
-                <textarea style="height: 70px;" id="notesInput" rows="3" placeholder="Kommentar..."></textarea>
-            </div>
-
-            <div class="overall-score" id="overallScoreDisplay">Gesamtbewertung: 0.0 / 5.0</div>
-
-            <button class="primary" onclick="saveRating()">Bewertung speichern</button>
-        </div>
-
-        <div id="teamSection" class="tab-content">
-            <h2>Bestenliste</h2>
             
-            <div class="filter-tags" id="leaderboardFilters">
-                <button class="filter-btn active" onclick="filterLeaderboard('Alle', event)">Alle</button>
-                <button class="filter-btn" onclick="filterLeaderboard('Kaffee', event)">Kaffee</button>
-                <button class="filter-btn" onclick="filterLeaderboard('Espresso', event)">Espresso</button>
+            <div class="w-20 h-20 bg-app-accent rounded-3xl flex items-center justify-center mb-10 shadow-lg shadow-app-accent/30">
+                <i class="fa-solid fa-brain text-white text-4xl"></i>
             </div>
-            <div id="leaderboardContainer">
-                <p>Lade Team-Daten...</p>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        /* =========================================
-           1. INITIALISIERUNG & SETUP
-           ========================================= */
-        
-        // --- HIER DEINE SUPABASE KEYS EINTRAGEN ---
-        const S_URL = 'https://qmgmvweupxffxexlovir.supabase.co';
-        const S_KEY = 'sb_publishable_efpVSR2dJIB6qZsa-sWuLw_AbBae7cs';
-        
-        // Wir nennen die Variable "sb", um Konflikte mit dem globalen "supabase" Objekt zu vermeiden
-        const sb = window.supabase.createClient(S_URL, S_KEY);
-    
-        let currentUser = localStorage.getItem('username');
-        let currentUserId = localStorage.getItem('userId');
-
-        let currentTheme = localStorage.getItem('theme') || 'light';
-        let currentType = 'Kaffee'; 
-
-        let currentLeaderboardMode = 'team';   // Merkt sich, ob wir "team" oder "personal" sehen
-        let currentLeaderboardFilter = 'Alle'; // Merkt sich den aktiven Filter
-        
-        let currentRating = { strength: 0, taste: 0, aroma: 0, mundgefühl: 0, acidity: 0, aftertaste: 0 };
-        let currentRatingDbId = null; // Speichert die ID einer bereits existierenden Bewertung
-
-        const categories = [
-            { id: 'strength', label: 'Stärke' },
-            { id: 'taste', label: 'Geschmack' },
-            { id: 'aroma', label: 'Aroma' },
-            { id: 'mundgefühl', label: 'Mundgefühl' },
-            { id: 'acidity', label: 'Säure' },
-            { id: 'aftertaste', label: 'Nachgeschmack' }
-        ];
-    
-        window.onload = () => {
-            applyTheme(currentTheme);
-            checkOnboarding();
-            buildStarUI();
-            fetchVarieties();
-            updateGreeting();
-        };
-    
-        /* =========================================
-           2. THEME & ONBOARDING
-           ========================================= */
-        function toggleTheme() {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(currentTheme);
-            localStorage.setItem('theme', currentTheme);
-        }
-    
-        function applyTheme(theme) {
-            if(theme === 'dark') {
-                document.body.setAttribute('data-theme', 'dark');
-                document.getElementById('themeIcon').innerText = '☕';
-            } else {
-                document.body.removeAttribute('data-theme');
-                document.getElementById('themeIcon').innerText = '☕';
-            }
-        }
-    
-        function checkOnboarding() {
-            if (!currentUser) {
-                document.getElementById('loginModal').classList.remove('d-none');
-            } else if (!localStorage.getItem('hintsSeen')) {
-                document.getElementById('hintModal').classList.remove('d-none');
-            }
-        }
-    
-        async function saveUsername() {
-            const name = document.getElementById('usernameInput').value.trim();
-            if (!name) {
-                alert("Bitte gib einen Namen ein.");
-                return;
-            }
-
-            // 1. Prüfen, ob der Nutzer bereits in der Datenbank existiert
-            // maybeSingle() verhindert einen Fehler-Absturz, wenn 0 Ergebnisse zurückkommen
-            const { data: existingUser, error: fetchError } = await sb
-                .from('profiles')
-                .select('id, username')
-                .eq('username', name)
-                .maybeSingle();
-
-            if (fetchError) {
-                console.error("Datenbankfehler:", fetchError);
-                alert("Fehler bei der Verbindung zur Datenbank.");
-                return;
-            }
-
-            if (existingUser) {
-                // User existiert bereits -> Wir loggen ihn wieder ein!
-                currentUser = existingUser.username;
-                currentUserId = existingUser.id;
-                // Optionales Feedback für den User:
-                // alert(`Willkommen zurück, ${currentUser}!`); 
-            } else {
-                // User existiert noch nicht -> Wir legen ihn neu an
-                const { data: newUser, error: insertError } = await sb
-                    .from('profiles')
-                    .insert([{ username: name }])
-                    .select()
-                    .single();
-
-                if (insertError) {
-                    console.error("Fehler beim Anlegen:", insertError);
-                    alert("Fehler! Vielleicht hat genau in dieser Sekunde jemand den Namen vergeben.");
-                    return;
-                }
-
-                currentUser = newUser.username;
-                currentUserId = newUser.id;
-            }
-
-            // 2. Daten lokal im Browser speichern, damit der User eingeloggt bleibt
-            localStorage.setItem('username', currentUser);
-            localStorage.setItem('userId', currentUserId);
-
-            updateGreeting();
-
-            // 3. UI updaten (Modals umschalten)
-            document.getElementById('loginModal').classList.add('d-none');
+            <h2 class="text-3xl font-bold mb-4 text-center">Fokus aufs Wesentliche.</h2>
+            <p class="text-sm text-gray-400 text-center mb-8 max-w-xs">Deine Daten gehören dir. Nutze die Export/Import-Icons oben, um Backups zu sichern.</p>
             
-            // Prüfen, ob der Hint schon gesehen wurde, um ihn nicht nervig oft zu zeigen
-            if (!localStorage.getItem('hintsSeen')) {
-                document.getElementById('hintModal').classList.remove('d-none');
-            }
-        }
-    
-        function closeHint() {
-            localStorage.setItem('hintsSeen', 'true');
-            document.getElementById('hintModal').classList.add('d-none');
-        }
-    
-        /* =========================================
-           3. NAVIGATION & UI
-           ========================================= */
-        window.switchTab = function(tab, event) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if(event) event.target.classList.add('active');
-    
-            if(tab === 'team' || tab === 'personal') {
-                document.getElementById('ratingSection').style.display = 'none';
-                document.getElementById('teamSection').style.display = 'block';
-                // Überschrift anpassen
-                document.querySelector('#teamSection h2').innerText = tab === 'team' ? '🏆 Team-Bestenliste' : '🏆 Meine Favoriten';
+            <div class="space-y-6 w-full max-w-sm">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">1</div>
+                    <p class="text-sm">Mache ein Foto von deinem Text oder deinen Notizen.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">2</div>
+                    <p class="text-sm">KI extrahiert automatisch die wichtigsten Fakten und Vokabeln.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">3</div>
+                    <p class="text-sm">Lerne effizient mit smarten Karteikarten ohne Bloatware.</p>
+                </div>
+            </div>
 
-                currentLeaderboardMode = tab;
-                loadLeaderboardData(tab); // Aufruf der neuen Funktion
+            <button onclick="finishOnboarding()" class="mt-12 w-full max-w-sm bg-app-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-app-accent/30 hover:bg-app-accentHover transition-colors active:scale-95">
+                Jetzt starten
+            </button>
+        </section>
 
-            } else {
-                document.getElementById('ratingSection').style.display = 'block';
-                document.getElementById('teamSection').style.display = 'none';
-                currentType = tab === 'kaffee' ? 'Kaffee' : 'Espresso';
-                document.getElementById('typeLabel').innerText = `${currentType}sorte auswählen:`;
-                fetchVarieties();
-                resetForm();
-            }
-        };
-    
-        function buildStarUI() {
-            const container = document.getElementById('starContainer');
-            container.innerHTML = '';
-            categories.forEach(cat => {
-                const row = document.createElement('div');
-                row.className = 'rating-row';
-                row.innerHTML = `<span>${cat.label}</span>`;
-                const starsDiv = document.createElement('div');
-                starsDiv.className = 'stars';
-                for(let i=1; i<=5; i++) {
-                    const star = document.createElement('span');
-                    star.innerText = '★';
-                    star.className = 'star';
-                    star.onclick = () => setRating(cat.id, i, starsDiv);
-                    starsDiv.appendChild(star);
-                }
-                row.appendChild(starsDiv);
-                container.appendChild(row);
-            });
-        }
-    
-        function setRating(category, value, starsDiv) {
-            currentRating[category] = value;
-            const stars = starsDiv.children;
-            for(let i=0; i<5; i++) stars[i].classList.toggle('active', i < value);
-            updateOverallScore();
-        }
-    
-        function updateOverallScore() {
-            const values = Object.values(currentRating).filter(v => v > 0);
-            if(values.length === 0) return 0;
-            const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
-            document.getElementById('overallScoreDisplay').innerText = `Gesamtbewertung: ${avg} / 5.0`;
-            return avg;
-        }
+        <!-- View: Scan -->
+        <section id="view-scan" class="view hidden px-6 pt-4 h-full flex flex-col">
+            <div class="flex-1 flex flex-col justify-center items-center">
+                <!-- Backup Warnung falls ungebackupt -->
+                <div id="backup-warning" class="w-full max-w-md mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl p-4 text-xs flex justify-between items-center hidden">
+                    <span><i class="fa-solid fa-triangle-exertion mr-2"></i> Unvollständiges Backup! Sichere deine neuen Vokabeln.</span>
+                    <button onclick="downloadData()" class="underline font-bold">Sichern</button>
+                </div>
 
-        function resetForm() {
-            currentRatingDbId = null; // NEU: ID zurücksetzen
-            currentRating = { strength: 0, taste: 0, aroma: 0, mundgefühl: 0, acidity: 0, aftertaste: 0 };
-            document.querySelectorAll('.star').forEach(s => s.classList.remove('active'));
-            document.getElementById('overallScoreDisplay').innerText = `Gesamtbewertung: 0.0 / 5.0`;
-            document.getElementById('notesInput').value = '';
-        }
-    
-        /* =========================================
-           4. DATENBANK AKTIONEN (mit "sb")
-           ========================================= */
-        async function fetchVarieties() {
-            const select = document.getElementById('varietySelect');
-            select.innerHTML = '<option>Lade...</option>';
-    
-            const { data, error } = await sb
-                .from('varieties')
-                .select('*')
-                .eq('type', currentType)
-                .order('name', { ascending: true });
-    
-            if (error) return console.error(error);
-    
-            select.innerHTML = '<option value="" disabled selected>Bitte wählen...</option>';
-            data.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.id;
-                opt.innerText = `${v.name} ${v.price_per_kg ? '(' + v.price_per_kg + '€/kg)' : ''}`;
-                select.appendChild(opt);
-            });
-        }
-    
-        async function addNewVarietyViaPrompt() {
-            const name = prompt(`Neue ${currentType}sorte hinzufügen:\nBitte Namen eingeben:`);
-            if (!name || name.trim() === '') return; 
-
-            let price = prompt("Preis pro kg in € (Optional, z.B. 25.50):");
-            price = price ? parseFloat(price.replace(',', '.')) : null;
-
-            // HIER DIE ÄNDERUNG:
-            // In addNewVarietyViaPrompt:
-            const { data, error } = await sb
-                .from('varieties')
-                .insert([{ 
-                    type: currentType, 
-                    name: name.trim(), 
-                    price_per_kg: price,
-                    username: currentUser // <--- NEU: Speichere den Namen des Erstellers
-                }])
-                .select();
-
-            if (error) {
-                console.error("Fehler:", error);
-                alert("Fehler beim Speichern der Sorte!");
-            } else {
-                fetchVarieties(); 
-            }
-        }
-
-        async function checkExistingRating() {
-            const varietyId = document.getElementById('varietySelect').value;
-            if (!varietyId) return resetForm();
-
-            // Suchen, ob der Nutzer hier schon eine Bewertung hat
-            const { data, error } = await sb
-                .from('ratings')
-                .select('*')
-                .eq('variety_id', varietyId)
-                .eq('user_id', currentUserId)
-                .maybeSingle();
-
-            if (data) {
-                // Bewertung existiert! Werte ins Formular laden
-                currentRatingDbId = data.id; 
-                currentRating = { 
-                    strength: data.strength, taste: data.taste, aroma: data.aroma, 
-                    mundgefühl: data.mundgefühl, acidity: data.acidity, aftertaste: data.aftertaste 
-                };
-                document.getElementById('notesInput').value = data.notes || '';
+                <div class="w-full max-w-md aspect-square rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center p-6 text-center mb-8 relative overflow-hidden bg-app-card dark:bg-app-darkcard shadow-sm">
+                    <i class="fa-solid fa-camera text-5xl text-gray-400 mb-4"></i>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Dokument scannen oder hochladen</p>
+                    
+                    <div id="scan-loader" class="absolute inset-0 bg-app-card/90 dark:bg-app-darkcard/90 flex flex-col items-center justify-center hidden backdrop-blur-sm">
+                        <i class="fa-solid fa-circle-notch fa-spin text-app-accent text-4xl mb-4"></i>
+                        <p class="text-sm font-medium animate-pulse">GPT-4o-mini analysiert Text...</p>
+                    </div>
+                </div>
                 
-                // Sterne UI updaten
-                const rows = document.getElementById('starContainer').children;
-                categories.forEach((cat, index) => {
-                    const starsDiv = rows[index].querySelector('.stars');
-                    const val = currentRating[cat.id];
-                    Array.from(starsDiv.children).forEach((star, i) => {
-                        star.classList.toggle('active', i < val);
-                    });
-                });
-                updateOverallScore();
+                <button onclick="simulateAIScan()" class="w-full max-w-md bg-app-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-app-accent/30 hover:bg-app-accentHover transition-colors active:scale-95 flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Mit KI scannen
+                </button>
+            </div>
+        </section>
+
+        <!-- View: Lernen -->
+        <section id="view-learn" class="view hidden h-full flex flex-col px-6 pt-2 pb-6">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tagesziel</span>
+                <span id="learn-counter" class="text-sm font-bold bg-app-accent/10 text-app-accent py-1 px-3 rounded-full">0 / 20</span>
+            </div>
+            
+            <div class="flex-1 relative perspective w-full max-w-md mx-auto" id="flashcard-container"></div>
+
+            <div id="learn-actions" class="mt-8 flex justify-between gap-4 max-w-md mx-auto w-full opacity-0 pointer-events-none transition-opacity duration-300">
+                <button onclick="handleCardResult('repeat')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-4 rounded-2xl font-bold active:scale-95 transition">
+                    <i class="fa-solid fa-xmark mb-1 block text-xl"></i> Wiederholen
+                </button>
+                <button onclick="handleCardResult('known')" class="flex-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 py-4 rounded-2xl font-bold active:scale-95 transition">
+                    <i class="fa-solid fa-check mb-1 block text-xl"></i> Gewusst
+                </button>
+            </div>
+        </section>
+
+        <!-- View: Liste -->
+        <section id="view-list" class="view hidden px-6 pt-4">
+            <button onclick="addManualVocab()" class="w-full border border-app-accent text-app-accent dark:border-app-accent/50 dark:text-app-accent py-3 rounded-xl font-semibold mb-6 hover:bg-app-accent/10 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i> Manuell hinzufügen
+            </button>
+            
+            <div id="vocab-list" class="space-y-3 pb-8"></div>
+        </section>
+
+        <!-- View: Ziele -->
+        <section id="view-goals" class="view hidden px-6 pt-4 h-full">
+            <div class="bg-app-card dark:bg-app-darkcard p-6 rounded-3xl shadow-sm mb-6 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-800">
+                <div class="text-6xl mb-2">🔥</div>
+                <h3 class="text-3xl font-bold"><span id="streak-count">0</span> Tage</h3>
+                <p class="text-sm text-gray-500 mt-1">Aktuelle Streak</p>
+            </div>
+
+            <div class="bg-app-card dark:bg-app-darkcard p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold">Tagesziel</h3>
+                        <p class="text-xs text-gray-500" id="goal-text">0 / 20 Karten gelernt</p>
+                    </div>
+                    <button onclick="setDailyGoal()" class="text-app-accent text-sm"><i class="fa-solid fa-pen"></i> Ändern</button>
+                </div>
+                
+                <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3 mb-2">
+                    <div id="goal-progress" class="bg-app-accent h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </section>
+        
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottom-nav" class="hidden fixed bottom-0 w-full bg-app-bg/90 dark:bg-app-darkbg/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 pb-safe pt-2 px-6 z-20">
+        <ul class="flex justify-between items-center pb-4 pt-1">
+            <li>
+                <button onclick="switchView('scan')" id="nav-scan" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                    <i class="fa-solid fa-camera text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Scannen</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="switchView('learn')" id="nav-learn" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                    <i class="fa-solid fa-layer-group text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Lernen</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="switchView('list')" id="nav-list" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                    <i class="fa-solid fa-list-ul text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Liste</span>
+                </button>
+            </li>
+            <li>
+                <button onclick="switchView('goals')" id="nav-goals" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                    <i class="fa-solid fa-bullseye text-xl mb-1"></i>
+                    <span class="text-[10px] font-medium">Ziele</span>
+                </button>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- App Logic -->
+    <script>
+        const memoryStorage = {};
+        const safeStorage = {
+            getItem(key) {
+                try { return localStorage.getItem(key); } 
+                catch (e) { return memoryStorage[key] || null; }
+            },
+            setItem(key, value) {
+                try { localStorage.setItem(key, value); } 
+                catch (e) { memoryStorage[key] = String(value); }
+            }
+        };
+
+        let appState = {
+            vocab: [],
+            dailyGoal: 20,
+            learnedToday: 0,
+            lastStudyDate: '',
+            streak: 0,
+            theme: 'dark',
+            lastBackupCount: 0 // Trackt wann das letzte Backup gemacht wurde
+        };
+
+        let currentView = 'scan';
+        let currentCardIndex = 0;
+        let isCardFlipped = false;
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function initApp() {
+            loadState();
+            applyTheme();
+            checkStreak();
+            checkBackupStatus();
+            
+            const isOnboarded = safeStorage.getItem('onboarded');
+            
+            if (!isOnboarded) {
+                document.getElementById('view-onboarding').classList.remove('hidden');
             } else {
-                // Keine Bewertung gefunden -> Formular leeren
-                resetForm();
+                showMainUI();
+                switchView(appState.vocab.length > 0 ? 'learn' : 'scan');
             }
         }
-    
-        async function saveRating() {
-            const varietyId = document.getElementById('varietySelect').value;
-            const overall = updateOverallScore();
-            if(!varietyId || overall == 0) return alert("Daten unvollständig!");
-    
-            const payload = {
-                variety_id: varietyId,
-                username: currentUser,
-                user_id: currentUserId,
-                strength: currentRating.strength,
-                taste: currentRating.taste,
-                aroma: currentRating.aroma,
-                mundgefühl: currentRating.mundgefühl,
-                acidity: currentRating.acidity,
-                aftertaste: currentRating.aftertaste,
-                overall: parseFloat(overall),
-                notes: document.getElementById('notesInput').value
+
+        function loadState() {
+            const saved = safeStorage.getItem('vocabAppState');
+            if (saved) {
+                try { appState = { ...appState, ...JSON.parse(saved) }; } catch(e) {}
+            }
+        }
+
+        function saveState() {
+            safeStorage.setItem('vocabAppState', JSON.stringify(appState));
+            updateGoalUI();
+            checkBackupStatus();
+        }
+
+        function checkBackupStatus() {
+            const warningBox = document.getElementById('backup-warning');
+            if(!warningBox) return;
+
+            // Wenn mehr als 10 neue Vokabeln seit dem letzten Export dazugekommen sind, warnen!
+            if (appState.vocab.length > appState.lastBackupCount + 10) {
+                warningBox.classList.remove('hidden');
+            } else {
+                warningBox.classList.add('hidden');
+            }
+        }
+
+        function showMainUI() {
+            document.getElementById('view-onboarding').classList.add('hidden');
+            document.getElementById('main-header').classList.remove('hidden');
+            document.getElementById('bottom-nav').classList.remove('hidden');
+        }
+
+        function finishOnboarding() {
+            safeStorage.setItem('onboarded', 'true');
+            showMainUI();
+            switchView('scan');
+        }
+
+        // --- BACKUP ENGINE (IMPORT & EXPORT) ---
+        function triggerImport() {
+            document.getElementById('backup-input').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedVocab = JSON.parse(e.target.result);
+                    if (Array.isArray(importedVocab)) {
+                        // Zusammenführen ohne Duplikate (basierend auf dem englischen Wort)
+                        const existingWords = new Set(appState.vocab.map(v => v.en.toLowerCase()));
+                        const newEntries = importedVocab.filter(v => v.en && v.de && !existingWords.has(v.en.toLowerCase()));
+
+                        appState.vocab = [...newEntries, ...appState.vocab];
+                        appState.lastBackupCount = appState.vocab.length; // Reset Backup Warning
+                        saveState();
+                        
+                        alert(`Erfolgreich: ${newEntries.length} neue Vokabeln importiert!`);
+                        
+                        // Direkt in die Liste springen, um Erfolg zu sehen
+                        if(localStorage.getItem('onboarded')) {
+                            switchView('list');
+                        } else {
+                            finishOnboarding();
+                        }
+                    } else {
+                        alert("Ungültiges Backup-Format. Muss ein JSON-Array sein.");
+                    }
+                } catch (err) {
+                    alert("Fehler beim Lesen der Datei. Stelle sicher, dass es eine valide exportierte .json Datei ist.");
+                }
             };
+            reader.readAsText(file);
+        }
 
-            let error;
-            if (currentRatingDbId) {
-                // UPDATE: Wenn wir schon eine ID haben, überschreiben wir den alten Eintrag
-                const res = await sb.from('ratings').update(payload).eq('id', currentRatingDbId);
-                error = res.error;
-            } else {
-                // INSERT: Neue Bewertung anlegen
-                const res = await sb.from('ratings').insert([payload]);
-                error = res.error;
+        function downloadData() {
+            if (appState.vocab.length === 0) {
+                alert("Keine Vokabeln zum Sichern vorhanden.");
+                return;
             }
-    
-            if (error) {
-                console.error(error);
-                alert("Fehler beim Speichern!");
+            
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.vocab, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `vocab_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+
+            // Zustand merken, dass Backup aktuell ist
+            appState.lastBackupCount = appState.vocab.length;
+            saveState();
+        }
+
+        // --- Theme ---
+        function toggleTheme() {
+            appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+            applyTheme();
+            saveState();
+        }
+
+        function applyTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            const iconOb = document.getElementById('theme-icon-onboarding');
+            
+            if (appState.theme === 'dark') {
+                html.classList.add('dark');
+                if(icon) { icon.className = 'fa-solid fa-sun text-lg'; }
+                if(iconOb) { iconOb.className = 'fa-solid fa-sun text-xl'; }
             } else {
-                alert(currentRatingDbId ? "Bewertung aktualisiert!" : "Bewertung gesichert!");
-                checkExistingRating(); // Lädt die frischen Daten neu ein
+                html.classList.remove('dark');
+                if(icon) { icon.className = 'fa-solid fa-moon text-lg'; }
+                if(iconOb) { iconOb.className = 'fa-solid fa-moon text-xl'; }
             }
         }
 
-        // --- NEU: Notizen Modal Logik ---
-        async function openNotesModal(varietyId, varietyName) {
-            // 1. Modal vorbereiten und anzeigen
-            document.getElementById('notesModalTitle').innerText = varietyName;
-            const content = document.getElementById('notesModalContent');
-            content.innerHTML = '<p style="text-align:center;">Lade Kommentare...</p>';
-            document.getElementById('notesModal').classList.remove('d-none');
+        // --- Navigation ---
+        function switchView(viewName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('text-app-accent');
+                b.classList.add('text-gray-400');
+            });
+            
+            const viewEl = document.getElementById(`view-${viewName}`);
+            if(viewEl) viewEl.classList.remove('hidden');
+            
+            const activeBtn = document.getElementById(`nav-${viewName}`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-400');
+                activeBtn.classList.add('text-app-accent');
+            }
 
-            // 2. Notizen aus der Datenbank laden
-            // Wir filtern leere Notizen heraus (.neq und .not)
-            const { data, error } = await sb
-                .from('ratings')
-                .select('username, notes, overall')
-                .eq('variety_id', varietyId)
-                .neq('notes', '')
-                .not('notes', 'is', null)
-                .order('overall', { ascending: false }); // Beste Bewertungen zuerst
+            const titles = { 'scan': 'Scannen', 'learn': 'Lernen', 'list': 'Vokabelliste', 'goals': 'Dein Fortschritt' };
+            document.getElementById('header-title').innerText = titles[viewName] || 'Vocab AI';
 
-            if (error) {
-                console.error("Fehler beim Laden der Kommentare:", error);
-                content.innerHTML = '<p style="text-align:center; color:red;">Fehler beim Laden.</p>';
+            currentView = viewName;
+
+            if (viewName === 'list') renderList();
+            if (viewName === 'goals') updateGoalUI();
+            if (viewName === 'learn') initLearnSession();
+        }
+
+        // --- Scan View ---
+        function simulateAIScan() {
+            const loader = document.getElementById('scan-loader');
+            loader.classList.remove('hidden');
+            
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                
+                const dummyData = [
+                    { id: Date.now(), en: "rational", de: "rational / vernünftig" },
+                    { id: Date.now()+1, en: "progressive", de: "fortschrittlich" },
+                    { id: Date.now()+2, en: "efficiency", de: "Effizienz" },
+                    { id: Date.now()+3, en: "minimalist", de: "minimalistisch" }
+                ];
+                
+                appState.vocab = [...appState.vocab, ...dummyData];
+                saveState();
+                switchView('list');
+            }, 2000);
+        }
+
+        // --- List View ---
+        function renderList() {
+            const container = document.getElementById('vocab-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            if (appState.vocab.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 mt-10">Noch keine Vokabeln vorhanden.</p>';
                 return;
             }
 
-            if (!data || data.length === 0) {
-                content.innerHTML = '<p style="text-align:center;">Noch keine Kommentare zu dieser Sorte vorhanden.</p>';
-                return;
-            }
-
-            // 3. Notizen als HTML zusammenbauen
-            let html = '';
-            data.forEach(rating => {
-                html += `
-                    <div style="margin-bottom: 10px; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <strong>${rating.username || 'Unbekannt'}</strong>
-                            <span style="color: var(--star-active); font-weight: bold;">★ ${rating.overall}</span>
-                        </div>
-                        <div style="font-size: 14px; color: var(--text-color); white-space: pre-wrap;">${rating.notes}</div>
+            appState.vocab.forEach((v, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-app-card dark:bg-app-darkcard p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center';
+                item.innerHTML = `
+                    <div>
+                        <p class="font-bold text-lg">${v.en}</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">${v.de}</p>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="editVocab(${index})" class="text-gray-400 hover:text-app-accent transition"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteVocab(${index})" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
+                container.appendChild(item);
             });
-            content.innerHTML = html;
         }
 
-        function closeNotesModal() {
-            document.getElementById('notesModal').classList.add('d-none');
+        function addManualVocab() {
+            const en = prompt("Vorderseite (Englisch):");
+            if (!en) return;
+            const de = prompt("Rückseite (Deutsch):");
+            if (!de) return;
+
+            appState.vocab.unshift({ id: Date.now(), en, de });
+            saveState();
+            renderList();
         }
 
-        // NEU: Funktion für die Klick-Tags
-        function filterLeaderboard(filter, event) {
-            currentLeaderboardFilter = filter;
-            
-            // Buttons optisch updaten (Klasse 'active' verschieben)
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            if(event) event.target.classList.add('active');
-            
-            // Liste mit dem aktuellen Modus (Team oder Personal) und neuem Filter neu laden
-            loadLeaderboardData(currentLeaderboardMode);
-        }
-    
-        async function loadLeaderboardData(mode) {
-            const container = document.getElementById('leaderboardContainer');
-            container.innerHTML = '<p>Lade Daten...</p>';
+        function editVocab(index) {
+            const item = appState.vocab[index];
+            const en = prompt("Vorderseite anpassen:", item.en);
+            if (en === null) return;
+            const de = prompt("Rückseite anpassen:", item.de);
+            if (de === null) return;
 
-            const { data: varieties } = await sb.from('varieties').select('id, name, type');
-            
-            // Grund-Abfrage für Ratings
-            let query = sb.from('ratings').select('variety_id, overall');
-            
-            // Wenn "Persönlich", filtern wir nur die eigenen Ratings!
-            if (mode === 'personal') {
-                query = query.eq('user_id', currentUserId);
+            appState.vocab[index] = { ...item, en, de };
+            saveState();
+            renderList();
+        }
+
+        function deleteVocab(index) {
+            if (confirm("Wirklich löschen?")) {
+                appState.vocab.splice(index, 1);
+                saveState();
+                renderList();
             }
-            
-            const { data: ratings } = await query;
-    
-            if(!varieties || !ratings) return;
-    
-            // 1. Liste aufbauen und sortieren
-            let ranking = varieties.map(v => {
-                const vRatings = ratings.filter(r => r.variety_id === v.id);
-                if(vRatings.length === 0) return null;
-                const avg = vRatings.reduce((a, b) => a + Number(b.overall), 0) / vRatings.length;
-                return { id: v.id, name: v.name, type: v.type, avg: avg, count: vRatings.length };
-            }).filter(x => x).sort((a, b) => b.avg - a.avg);
+        }
 
-            // ---------------------------------------------------------
-            // 2. NEU: Liste nach dem aktiven Tag filtern
-            // ---------------------------------------------------------
-            if (currentLeaderboardFilter !== 'Alle') {
-                ranking = ranking.filter(item => item.type === currentLeaderboardFilter);
-            }
-            // ---------------------------------------------------------
-    
-            // 3. Liste auf dem Bildschirm ausgeben
-            container.innerHTML = ranking.length ? '' : '<p>Noch keine Daten in dieser Kategorie...</p>';
+        // --- Learn View ---
+        function initLearnSession() {
+            currentCardIndex = 0;
+            isCardFlipped = false;
+            updateLearnCounter();
+            renderFlashcard();
+        }
+
+        function updateLearnCounter() {
+            const counter = document.getElementById('learn-counter');
+            if(counter) counter.innerText = `${appState.learnedToday} / ${appState.dailyGoal}`;
+        }
+
+        function renderFlashcard() {
+            const container = document.getElementById('flashcard-container');
+            const actionBtns = document.getElementById('learn-actions');
+            if(!container) return;
             
-            ranking.forEach((item, i) => {
-                // Kaffee / Espresso Tag Icon generieren
-                const typeIcon = item.type === 'Kaffee' ? '☕ Kaffee' : '🍵 Espresso';
-                
-                container.innerHTML += `
-                    <div class="leaderboard-item" onclick="openNotesModal('${item.id}', '${item.name}')" style="flex-direction: column; gap: 5px; cursor: pointer;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <div><span class="rank">#${i+1}</span><strong>${item.name}</strong></div>
-                            <div style="color:var(--star-active); font-weight: bold;">★ ${item.avg.toFixed(1)}</div>
-                        </div>
-                        <div style="font-size: 12px; color: var(--text-muted);">
-                            ${typeIcon} ${mode === 'team' ? `&bull; ${item.count} Bewertung(en)` : ''}
-                        </div>
+            if (appState.vocab.length === 0) {
+                container.innerHTML = `
+                    <div class="h-full w-full bg-app-card dark:bg-app-darkcard rounded-3xl flex items-center justify-center p-8 text-center border border-gray-100 dark:border-gray-800">
+                        <p class="text-gray-500">Keine Vokabeln vorhanden.<br>Gehe zu 'Scannen'.</p>
                     </div>`;
-            });
-        }
-
-        /* =========================================
-           NEU: INFO MODAL (Team & Letzte Bearbeitung)
-           ========================================= */
-
-        // Hilfsfunktion: Formatiert den Supabase-Timestamp in "So. 03.03.2026 14:30 Uhr"
-        function formatTimestamp(isoString) {
-            if (!isoString) return '';
-            const date = new Date(isoString);
-            
-            const days = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
-            const dayName = days[date.getDay()];
-            
-            const d = String(date.getDate()).padStart(2, '0');
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const y = date.getFullYear();
-            
-            const hrs = String(date.getHours()).padStart(2, '0');
-            const mins = String(date.getMinutes()).padStart(2, '0');
-            
-            return `${dayName} ${d}.${m}.${y} ${hrs}:${mins} Uhr`;
-        }
-
-        async function openInfoModal() {
-            document.getElementById('infoModal').classList.remove('d-none');
-            const content = document.getElementById('infoModalContent');
-            content.innerHTML = '<p style="text-align:center;">Lade Team-Daten...</p>';
-
-            // 1. Alle Nutzer laden
-            const { data: profiles, error: profileError } = await sb
-                .from('profiles')
-                .select('username')
-                .order('username', { ascending: true });
-
-            // 2. Letztes Rating abrufen
-            const { data: lastRating } = await sb
-                .from('ratings')
-                .select('username, created_at')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            // 3. Letzte Sorte abrufen
-            const { data: lastVariety } = await sb
-                .from('varieties')
-                .select('username, created_at, name')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (profileError) {
-                content.innerHTML = '<p style="text-align:center; color:red;">Fehler beim Laden.</p>';
+                if(actionBtns) { actionBtns.style.opacity = "0"; actionBtns.style.pointerEvents = "none"; }
                 return;
             }
 
-            // HTML für Mitglieder-Liste
-            let html = '<h3 style="margin-bottom: 5px; margin-top: 0px;">Team-Mitglieder:</h3><ul style="padding-left: 20px; margin-top: 5px;">';
-            profiles?.forEach(p => {
-                html += p.username === currentUser ? `<li><strong>${p.username} (Du)</strong></li>` : `<li>${p.username}</li>`;
-            });
-            html += '</ul>';
+            const cardData = appState.vocab[currentCardIndex];
+            
+            container.innerHTML = `
+                <div id="flashcard" class="w-full h-96 relative preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()">
+                    <div class="absolute inset-0 backface-hidden bg-app-card dark:bg-app-darkcard rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col justify-center items-center p-8 text-center">
+                        <span class="absolute top-4 left-4 text-xs font-bold text-gray-400">Vorderseite</span>
+                        <h2 class="text-4xl font-bold">${cardData.en}</h2>
+                        <p class="mt-8 text-gray-400 text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>Tippen zum Drehen</p>
+                    </div>
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-app-accent rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
+                        <span class="absolute top-4 left-4 text-xs font-bold text-white/60">Rückseite</span>
+                        <h2 class="text-3xl font-bold">${cardData.de}</h2>
+                    </div>
+                </div>
+            `;
 
-            // 4. Zeitstempel vergleichen und "Zuletzt aktiv" Logik
-            let finalUser = "";
-            let finalDate = null;
-            let actionText = "zuletzt bearbeitet"; // Standard
+            const cardElement = document.getElementById('flashcard');
+            cardElement.addEventListener('touchstart', handleTouchStart, false);
+            cardElement.addEventListener('touchend', handleTouchEnd, false);
 
-            const ratingTime = lastRating ? new Date(lastRating.created_at) : 0;
-            const varietyTime = lastVariety ? new Date(lastVariety.created_at) : 0;
-
-            if (ratingTime > varietyTime) {
-                finalUser = lastRating.username;
-                finalDate = lastRating.created_at;
-                actionText = "Bewertung abgegeben von";
-            } else if (varietyTime > 0) {
-                finalUser = lastVariety.username || "Unbekannt";
-                finalDate = lastVariety.created_at;
-                actionText = `Neue Sorte (${lastVariety.name}) erstellt von`;
-            }
-
-            if (finalDate) {
-                const timeString = formatTimestamp(finalDate);
-                html += `<hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0 15px 0;">`;
-                html += `<p style="font-size: 14px; color: var(--text-muted); text-align: center; margin: 0;">
-                            ${actionText}: <strong style="color: var(--text-color);">${finalUser}</strong><br>
-                            (${timeString})
-                        </p>`;
-            }
-
-            content.innerHTML = html;
+            isCardFlipped = false;
+            if(actionBtns) { actionBtns.style.opacity = "0"; actionBtns.style.pointerEvents = "none"; }
         }
 
-        function closeInfoModal() {
-            document.getElementById('infoModal').classList.add('d-none');
-        }
+        function flipCard() {
+            const card = document.getElementById('flashcard');
+            const actionBtns = document.getElementById('learn-actions');
+            if (!card || !actionBtns) return;
 
-        /* =========================================
-        5. SWIPE-GESTEN FÜR TABS
-        ========================================= */
-        let touchstartX = 0;
-        let touchendX = 0;
-
-        // Die Tabs in der Reihenfolge, wie sie im HTML stehen
-        const tabOrder = ['kaffee', 'espresso', 'personal', 'team'];
-
-        function handleGesture() {
-            const swipeThreshold = 70; // Mindestdistanz in Pixeln für einen Swipe
-            const diff = touchendX - touchstartX;
-
-            // Aktuellen Tab-Index finden
-            const currentTabBtn = document.querySelector('.tab-btn.active');
-            // Wir extrahieren den Tab-Namen aus dem onclick-Attribut
-            const currentTabName = currentTabBtn.getAttribute('onclick').match(/'([^']+)'/)[1];
-            let currentIndex = tabOrder.indexOf(currentTabName);
-
-            if (diff < -swipeThreshold) {
-                // Swipe nach LINKS -> Nächster Tab
-                if (currentIndex < tabOrder.length - 1) {
-                    const nextTab = tabOrder[currentIndex + 1];
-                    // Wir suchen den Button im DOM, um das Event-Objekt für switchTab zu simulieren
-                    const nextBtn = document.querySelectorAll('.tab-btn')[currentIndex + 1];
-                    switchTab(nextTab, { target: nextBtn });
-                }
-            }
-
-            if (diff > swipeThreshold) {
-                // Swipe nach RECHTS -> Vorheriger Tab
-                if (currentIndex > 0) {
-                    const prevTab = tabOrder[currentIndex - 1];
-                    const prevBtn = document.querySelectorAll('.tab-btn')[currentIndex - 1];
-                    switchTab(prevTab, { target: prevBtn });
-                }
-            }
-        }
-
-        function updateGreeting() {
-            const headerElement = document.getElementById('greetingHeader');
-            if (currentUser) {
-                headerElement.innerText = `☰ Hallo ${currentUser}`;
+            isCardFlipped = !isCardFlipped;
+            if (isCardFlipped) {
+                card.classList.add('rotate-y-180');
+                actionBtns.style.opacity = "1";
+                actionBtns.style.pointerEvents = "auto";
             } else {
-                headerElement.innerText = `☰ Hallo`;
+                card.classList.remove('rotate-y-180');
+                actionBtns.style.opacity = "0";
+                actionBtns.style.pointerEvents = "none";
             }
         }
 
-        // Event Listener an das App-Container binden
-        const appContainer = document.getElementById('app');
+        function handleCardResult(type) {
+            if (type === 'known') { incrementGoal(); }
+            nextCard('left');
+        }
 
-        appContainer.addEventListener('touchstart', e => {
-            touchstartX = e.changedTouches[0].screenX;
-        }, {passive: true});
+        function nextCard(direction = 'left') {
+            if (appState.vocab.length <= 1) {
+                initLearnSession();
+                return;
+            }
 
-        appContainer.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            handleGesture();
-        }, {passive: true});
+            const card = document.getElementById('flashcard');
+            if(!card) return;
+            
+            card.classList.add(direction === 'left' ? 'swipe-left' : 'swipe-right');
 
+            setTimeout(() => {
+                if (direction === 'left') {
+                    currentCardIndex = (currentCardIndex + 1) % appState.vocab.length;
+                } else {
+                    currentCardIndex = (currentCardIndex - 1 + appState.vocab.length) % appState.vocab.length;
+                }
+                isCardFlipped = false;
+                renderFlashcard();
+            }, 300);
+        }
+
+        function handleTouchStart(evt) { touchStartX = evt.changedTouches[0].screenX; }
+        function handleTouchEnd(evt) { touchEndX = evt.changedTouches[0].screenX; handleSwipe(); }
+
+        function handleSwipe() {
+            const threshold = 50;
+            if (touchEndX < touchStartX - threshold) { nextCard('left'); }
+            if (touchEndX > touchStartX + threshold) { nextCard('right'); }
+        }
+
+        // --- Goals & Streak ---
+        function checkStreak() {
+            const today = new Date().toDateString();
+            if (appState.lastStudyDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (appState.lastStudyDate !== yesterday.toDateString() && appState.lastStudyDate !== '') {
+                    appState.streak = 0;
+                }
+                appState.learnedToday = 0;
+            }
+            saveState();
+        }
+
+        function incrementGoal() {
+            const today = new Date().toDateString();
+            if (appState.learnedToday === 0 && appState.lastStudyDate !== today) {
+                appState.streak += 1;
+                appState.lastStudyDate = today;
+            }
+            appState.learnedToday += 1;
+            saveState();
+            updateLearnCounter();
+        }
+
+        function setDailyGoal() {
+            const input = prompt("Tagesziel (Anzahl Karten):", appState.dailyGoal);
+            if (input && !isNaN(input)) {
+                appState.dailyGoal = parseInt(input, 10);
+                saveState();
+            }
+        }
+
+        function updateGoalUI() {
+            const streakEl = document.getElementById('streak-count');
+            const goalEl = document.getElementById('goal-text');
+            const progressEl = document.getElementById('goal-progress');
+
+            if(streakEl) streakEl.innerText = appState.streak;
+            if(goalEl) goalEl.innerText = `${appState.learnedToday} / ${appState.dailyGoal} Karten gelernt`;
+            
+            if(progressEl) {
+                const progress = Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100);
+                progressEl.style.width = `${progress}%`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
