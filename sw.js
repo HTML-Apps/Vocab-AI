@@ -1,4 +1,4 @@
-const CACHE_NAME = "scoreboard-v1";
+const CACHE_NAME = "Vocab-AI_v1";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
