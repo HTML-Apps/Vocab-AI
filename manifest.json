@@ -1,10 +1,10 @@
 {
-  "name": "COS-Scoreboard",
-  "short_name": "Scoreboard",
+  "name": "Vocab-AI",
+  "short_name": "Vocab-AI",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f1f4f9",
-  "description": "COS-Scoreboard",
+  "description": "Vocab-AI",
   "icons": [
     {
       "src": "pokal.png",
