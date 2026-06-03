@@ -8,7 +8,7 @@
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#120b29">
+    <meta name="theme-color" content="#0f172a">
 
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="pokal.png">
@@ -24,15 +24,11 @@
             theme: {
                 extend: {
                     colors: {
-                        app: {
-                            bg: '#f4f4f9', 
-                            darkbg: '#120b29', 
-                            card: '#ffffff',
-                            darkcard: '#241452', 
-                            accent: '#7A3FFF', 
-                            accentHover: '#5e2be2',
-                            textDark: '#e2e8f0',
-                            textLight: '#1e293b'
+                        slate: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0',
+                            300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b',
+                            600: '#475569', 700: '#334155', 800: '#1e293b',
+                            850: '#172033', 900: '#0f172a', 950: '#020617'
                         }
                     }
                 }
@@ -41,180 +37,330 @@
     </script>
 
     <style>
+        /* ── CSS Custom Properties for theming ── */
+        :root {
+            --color-primary: #6366f1;       /* indigo-500 */
+            --color-primary-hover: #4f46e5; /* indigo-600 */
+            --color-primary-light: rgba(99,102,241,0.15);
+            --color-primary-shadow: rgba(99,102,241,0.35);
+        }
+        :root[data-accent="teal"] {
+            --color-primary: #14b8a6;
+            --color-primary-hover: #0d9488;
+            --color-primary-light: rgba(20,184,166,0.15);
+            --color-primary-shadow: rgba(20,184,166,0.35);
+        }
+        :root[data-accent="violet"] {
+            --color-primary: #8b5cf6;
+            --color-primary-hover: #7c3aed;
+            --color-primary-light: rgba(139,92,246,0.15);
+            --color-primary-shadow: rgba(139,92,246,0.35);
+        }
+
+        /* ── Base ── */
         body { -webkit-tap-highlight-color: transparent; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ── Card flip ── */
         .perspective { perspective: 1000px; }
         .preserve-3d { transform-style: preserve-3d; }
         .backface-hidden { backface-visibility: hidden; }
         .rotate-y-180 { transform: rotateY(180deg); }
         .flip-transition { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
-        .swipe-left { animation: swipeLeftOut 0.3s forwards; }
+
+        /* ── Swipe animations ── */
+        .swipe-left  { animation: swipeLeftOut  0.3s forwards; }
         .swipe-right { animation: swipeRightOut 0.3s forwards; }
-        @keyframes swipeLeftOut { to { transform: translateX(-100%) rotate(-10deg); opacity: 0; } }
-        @keyframes swipeRightOut { to { transform: translateX(100%) rotate(10deg); opacity: 0; } }
+        @keyframes swipeLeftOut  { to { transform: translateX(-100%) rotate(-10deg); opacity: 0; } }
+        @keyframes swipeRightOut { to { transform: translateX(100%)  rotate(10deg);  opacity: 0; } }
+
+        /* ── Accent-color utilities (driven by CSS vars) ── */
+        .accent-bg     { background-color: var(--color-primary); }
+        .accent-bg-hover:hover { background-color: var(--color-primary-hover); }
+        .accent-text   { color: var(--color-primary); }
+        .accent-border { border-color: var(--color-primary); }
+        .accent-light  { background-color: var(--color-primary-light); }
+        .accent-shadow { box-shadow: 0 8px 30px var(--color-primary-shadow); }
+        .accent-ring:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+        .nav-active    { color: var(--color-primary) !important; }
+
+        /* ── Light/Dark surface colors ── */
+        .bg-surface   { background-color: #f1f5f9; }
+        .dark .bg-surface { background-color: #0f172a; }
+        .bg-card      { background-color: #ffffff; }
+        .dark .bg-card { background-color: #1e293b; }
+        .border-subtle { border-color: #e2e8f0; }
+        .dark .border-subtle { border-color: #334155; }
+        .text-base    { color: #1e293b; }
+        .dark .text-base { color: #e2e8f0; }
+        .text-muted   { color: #64748b; }
+        .dark .text-muted { color: #94a3b8; }
+
+        /* ── Flashcard: fill available height ── */
+        #flashcard-wrapper {
+            flex: 1 1 0%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        #flashcard-container {
+            flex: 1 1 0%;
+            min-height: 0;
+            display: flex;
+            align-items: stretch;
+        }
+        #flashcard-container > div {
+            flex: 1 1 0%;
+            min-height: 0;
+        }
+        #flashcard {
+            width: 100%;
+            height: 100%;
+            min-height: 220px;
+        }
+
+        /* ── Deck list item hover ── */
+        .deck-item { transition: transform 0.15s, box-shadow 0.15s; }
+        .deck-item:active { transform: scale(0.98); }
+
+        /* ── Modal overlay ── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 60;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: flex-end; justify-content: center;
+        }
+        .modal-sheet {
+            width: 100%; max-width: 480px;
+            border-radius: 1.5rem 1.5rem 0 0;
+            padding: 1.5rem 1.5rem 2.5rem;
+            animation: slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
+        }
+        .dark .modal-sheet { background: #1e293b; }
+        .modal-sheet { background: #fff; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* ── Accent picker circle ── */
+        .accent-dot {
+            width: 2rem; height: 2rem;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        .accent-dot:hover { transform: scale(1.1); }
+        .accent-dot.selected { border-color: white; box-shadow: 0 0 0 2px var(--color-primary); }
+
+        /* ── Deck detail back button ── */
+        .back-btn { cursor: pointer; }
     </style>
 </head>
-<body class="bg-app-bg dark:bg-app-darkbg text-app-textLight dark:text-app-textDark transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
-    <!-- Versteckter File-Input für den Backup-Import -->
+<!-- h-screen flex flex-col: strict layout so footer never floats over content -->
+<body class="bg-surface text-base transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
+
+    <!-- Hidden file input for backup import -->
     <input type="file" id="backup-input" class="hidden" accept=".json" onchange="importData(event)">
 
-    <!-- Header -->
-    <header id="main-header" class="flex justify-between items-center p-6 pb-2 z-10 hidden">
-        <h1 class="text-xl font-bold tracking-tight" id="header-title">Vocab AI</h1>
-        <div class="flex gap-4 items-center">
-            <!-- Backup Import/Export -->
-            <button onclick="triggerImport()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup importieren">
+    <!-- ═══ HEADER ═══ -->
+    <header id="main-header" class="hidden flex-shrink-0 flex justify-between items-center px-5 py-3 z-10 bg-surface border-b border-subtle">
+        <div class="flex items-center gap-2">
+            <button id="header-back-btn" class="back-btn hidden accent-text mr-1" onclick="handleBackBtn()">
+                <i class="fa-solid fa-chevron-left text-lg"></i>
+            </button>
+            <h1 class="text-lg font-bold tracking-tight" id="header-title">Vocab AI</h1>
+        </div>
+        <div class="flex gap-3 items-center">
+            <button onclick="openSettingsModal()" class="text-muted hover:accent-text transition" title="Einstellungen">
+                <i class="fa-solid fa-sliders text-lg"></i>
+            </button>
+            <button onclick="triggerImport()" class="text-muted hover:accent-text transition" title="Backup importieren">
                 <i class="fa-solid fa-upload text-lg"></i>
             </button>
-            <button onclick="downloadData()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup exportieren">
+            <button onclick="downloadData()" class="text-muted hover:accent-text transition" title="Backup exportieren">
                 <i class="fa-solid fa-download text-lg"></i>
-            </button>
-            <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition">
-                <i class="fa-solid fa-moon text-lg" id="theme-icon"></i>
             </button>
         </div>
     </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0 pb-24" id="main-container">
-        
-        <!-- View: Onboarding -->
-        <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-app-bg dark:bg-app-darkbg z-50">
-            <div class="absolute top-6 right-6 flex gap-4 items-center">
-                <button onclick="triggerImport()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup importieren"><i class="fa-solid fa-upload text-xl"></i></button>
-                <button onclick="downloadData()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition" title="Backup exportieren"><i class="fa-solid fa-download text-xl"></i></button>
-                <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-400 hover:text-app-accent transition"><i class="fa-solid fa-moon text-xl" id="theme-icon-onboarding"></i></button>
+    <!-- ═══ MAIN (flex-1 + overflow-y-auto → scrollable, never covered by footer) ═══ -->
+    <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0" id="main-container">
+
+        <!-- ─── View: Onboarding ─── -->
+        <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-surface z-50">
+            <div class="absolute top-4 right-5 flex gap-3 items-center">
+                <!-- Accent picker on onboarding -->
+                <div class="flex gap-2 items-center">
+                    <button class="accent-dot" data-accent="indigo" style="background:#6366f1" onclick="setAccent('indigo')" title="Indigo"></button>
+                    <button class="accent-dot" data-accent="teal"   style="background:#14b8a6" onclick="setAccent('teal')"   title="Teal"></button>
+                    <button class="accent-dot" data-accent="violet" style="background:#8b5cf6" onclick="setAccent('violet')" title="Violet"></button>
+                </div>
+                <button onclick="toggleTheme()" class="text-muted hover:accent-text transition ml-1">
+                    <i class="fa-solid fa-moon text-xl" id="theme-icon-onboarding"></i>
+                </button>
             </div>
-            
-            <div class="w-20 h-20 bg-app-accent rounded-3xl flex items-center justify-center mb-10 shadow-lg shadow-app-accent/30">
+
+            <div class="w-20 h-20 accent-bg rounded-3xl flex items-center justify-center mb-8 accent-shadow">
                 <i class="fa-solid fa-brain text-white text-4xl"></i>
             </div>
-            <h2 class="text-3xl font-bold mb-4 text-center">Fokus aufs Wesentliche.</h2>
-            <p class="text-sm text-gray-400 text-center mb-8 max-w-xs">Deine Daten gehören dir. Nutze die Export/Import-Icons oben, um Backups zu sichern.</p>
-            
-            <div class="space-y-6 w-full max-w-sm">
+            <h2 class="text-3xl font-bold mb-3 text-center">Fokus aufs Wesentliche.</h2>
+            <p class="text-sm text-muted text-center mb-8 max-w-xs">Deine Daten bleiben auf deinem Gerät. Nutze Export/Import für Backups.</p>
+
+            <div class="space-y-5 w-full max-w-sm">
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">1</div>
-                    <p class="text-sm">Mache ein Foto von deinem Text oder deinen Notizen.</p>
+                    <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">1</div>
+                    <p class="text-sm">Mache ein Foto von Text oder Notizen.</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">2</div>
-                    <p class="text-sm">KI extrahiert automatisch die wichtigsten Fakten und Vokabeln.</p>
+                    <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">2</div>
+                    <p class="text-sm">KI extrahiert automatisch wichtige Vokabeln in dein Deck.</p>
                 </div>
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-app-accent/20 text-app-accent flex justify-center items-center font-bold">3</div>
-                    <p class="text-sm">Lerne effizient mit smarten Karteikarten ohne Bloatware.</p>
+                    <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">3</div>
+                    <p class="text-sm">Lerne effizient mit smarten Karteikarten.</p>
                 </div>
             </div>
 
-            <button onclick="finishOnboarding()" class="mt-12 w-full max-w-sm bg-app-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-app-accent/30 hover:bg-app-accentHover transition-colors active:scale-95">
+            <button onclick="finishOnboarding()" class="mt-10 w-full max-w-sm accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95">
                 Jetzt starten
             </button>
         </section>
 
-        <!-- View: Scan -->
-        <section id="view-scan" class="view hidden px-6 pt-4 h-full flex flex-col">
-            <div class="flex-1 flex flex-col justify-center items-center">
-                <!-- Backup Warnung falls ungebackupt -->
-                <div id="backup-warning" class="w-full max-w-md mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-2xl p-4 text-xs flex justify-between items-center hidden">
-                    <span><i class="fa-solid fa-triangle-exertion mr-2"></i> Unvollständiges Backup! Sichere deine neuen Vokabeln.</span>
-                    <button onclick="downloadData()" class="underline font-bold">Sichern</button>
-                </div>
+        <!-- ─── View: Scan ─── -->
+        <section id="view-scan" class="view hidden flex flex-col px-5 pt-4 pb-4 min-h-full">
+            <!-- Backup warning -->
+            <div id="backup-warning" class="w-full mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-2xl p-3 text-xs flex justify-between items-center hidden">
+                <span><i class="fa-solid fa-triangle-exclamation mr-2"></i>Ungesicherte Vokabeln vorhanden!</span>
+                <button onclick="downloadData()" class="underline font-bold ml-2 whitespace-nowrap">Sichern</button>
+            </div>
 
-                <div class="w-full max-w-md aspect-square rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center p-6 text-center mb-8 relative overflow-hidden bg-app-card dark:bg-app-darkcard shadow-sm">
-                    <i class="fa-solid fa-camera text-5xl text-gray-400 mb-4"></i>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Dokument scannen oder hochladen</p>
-                    
-                    <div id="scan-loader" class="absolute inset-0 bg-app-card/90 dark:bg-app-darkcard/90 flex flex-col items-center justify-center hidden backdrop-blur-sm">
-                        <i class="fa-solid fa-circle-notch fa-spin text-app-accent text-4xl mb-4"></i>
-                        <p class="text-sm font-medium animate-pulse">GPT-4o-mini analysiert Text...</p>
+            <!-- Target deck selector -->
+            <div class="mb-4">
+                <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block">Ziel-Deck für KI-Scan</label>
+                <select id="scan-target-deck" class="w-full bg-card border border-subtle rounded-xl px-4 py-3 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800">
+                </select>
+            </div>
+
+            <div class="flex-1 flex flex-col justify-center items-center">
+                <div class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm">
+                    <i class="fa-solid fa-camera text-5xl text-muted mb-4"></i>
+                    <p class="text-sm text-muted">Dokument scannen oder hochladen</p>
+                    <div id="scan-loader" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center hidden backdrop-blur-sm">
+                        <i class="fa-solid fa-circle-notch fa-spin accent-text text-4xl mb-4"></i>
+                        <p class="text-sm font-medium animate-pulse">KI analysiert Text…</p>
                     </div>
                 </div>
-                
-                <button onclick="simulateAIScan()" class="w-full max-w-md bg-app-accent text-white py-4 rounded-2xl font-bold shadow-lg shadow-app-accent/30 hover:bg-app-accentHover transition-colors active:scale-95 flex justify-center items-center gap-2">
+
+                <button onclick="simulateAIScan()" class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Mit KI scannen
                 </button>
             </div>
         </section>
 
-        <!-- View: Lernen -->
-        <section id="view-learn" class="view hidden h-full flex flex-col px-6 pt-2 pb-6">
-            <div class="flex justify-between items-center mb-6">
-                <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tagesziel</span>
-                <span id="learn-counter" class="text-sm font-bold bg-app-accent/10 text-app-accent py-1 px-3 rounded-full">0 / 20</span>
+        <!-- ─── View: Lernen ─── -->
+        <section id="view-learn" class="view hidden flex flex-col px-5 pt-3 pb-4" style="height:100%">
+            <!-- Deck selector for learn -->
+            <div id="learn-deck-selector" class="hidden flex flex-col items-center justify-center h-full py-8">
+                <div class="w-16 h-16 accent-bg rounded-2xl flex items-center justify-center mb-6 accent-shadow">
+                    <i class="fa-solid fa-layer-group text-white text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Welches Deck lernen?</h3>
+                <p class="text-sm text-muted mb-6 text-center">Wähle ein Deck oder lerne aus allen Vokabeln.</p>
+                <div id="learn-deck-list" class="w-full max-w-sm space-y-3"></div>
             </div>
-            
-            <div class="flex-1 relative perspective w-full max-w-md mx-auto" id="flashcard-container"></div>
 
-            <div id="learn-actions" class="mt-8 flex justify-between gap-4 max-w-md mx-auto w-full opacity-0 pointer-events-none transition-opacity duration-300">
-                <button onclick="handleCardResult('repeat')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-4 rounded-2xl font-bold active:scale-95 transition">
-                    <i class="fa-solid fa-xmark mb-1 block text-xl"></i> Wiederholen
-                </button>
-                <button onclick="handleCardResult('known')" class="flex-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 py-4 rounded-2xl font-bold active:scale-95 transition">
-                    <i class="fa-solid fa-check mb-1 block text-xl"></i> Gewusst
-                </button>
+            <!-- Active learn session -->
+            <div id="learn-session" class="hidden flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                    <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
+                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium">Decks</span>
+                    </button>
+                    <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
+                </div>
+
+                <!-- flashcard-wrapper: grows to fill remaining space -->
+                <div id="flashcard-wrapper">
+                    <div class="perspective w-full max-w-md mx-auto" id="flashcard-container"></div>
+                </div>
+
+                <div id="learn-actions" class="mt-4 flex justify-between gap-4 max-w-md mx-auto w-full flex-shrink-0 opacity-0 pointer-events-none transition-opacity duration-300">
+                    <button onclick="handleCardResult('repeat')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-4 rounded-2xl font-bold active:scale-95 transition">
+                        <i class="fa-solid fa-xmark mb-1 block text-xl"></i> Wiederholen
+                    </button>
+                    <button onclick="handleCardResult('known')" class="flex-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 py-4 rounded-2xl font-bold active:scale-95 transition">
+                        <i class="fa-solid fa-check mb-1 block text-xl"></i> Gewusst
+                    </button>
+                </div>
             </div>
         </section>
 
-        <!-- View: Liste -->
-        <section id="view-list" class="view hidden px-6 pt-4">
-            <button onclick="addManualVocab()" class="w-full border border-app-accent text-app-accent dark:border-app-accent/50 dark:text-app-accent py-3 rounded-xl font-semibold mb-6 hover:bg-app-accent/10 transition flex items-center justify-center gap-2">
+        <!-- ─── View: Liste (Deck Overview) ─── -->
+        <section id="view-list" class="view hidden px-5 pt-4 pb-6 min-h-full">
+            <button onclick="createNewDeck()" class="w-full border accent-border accent-text py-3 rounded-xl font-semibold mb-5 hover:accent-light transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i> Neue Liste erstellen
+            </button>
+            <div id="deck-overview" class="space-y-3"></div>
+        </section>
+
+        <!-- ─── View: Deck Detail ─── -->
+        <section id="view-deck-detail" class="view hidden px-5 pt-4 pb-6 min-h-full">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="deck-detail-title" class="text-lg font-bold"></h2>
+                <span id="deck-detail-count" class="text-xs text-muted"></span>
+            </div>
+            <button onclick="addManualVocab()" class="w-full border accent-border accent-text py-3 rounded-xl font-semibold mb-4 hover:accent-light transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-plus"></i> Manuell hinzufügen
             </button>
-            
-            <div id="vocab-list" class="space-y-3 pb-8"></div>
+            <div id="vocab-list" class="space-y-3 pb-4"></div>
         </section>
 
-        <!-- View: Ziele -->
-        <section id="view-goals" class="view hidden px-6 pt-4 h-full">
-            <div class="bg-app-card dark:bg-app-darkcard p-6 rounded-3xl shadow-sm mb-6 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-800">
+        <!-- ─── View: Ziele ─── -->
+        <section id="view-goals" class="view hidden px-5 pt-4 pb-6 min-h-full">
+            <div class="bg-card p-6 rounded-3xl shadow-sm mb-5 flex flex-col items-center justify-center border border-subtle">
                 <div class="text-6xl mb-2">🔥</div>
                 <h3 class="text-3xl font-bold"><span id="streak-count">0</span> Tage</h3>
-                <p class="text-sm text-gray-500 mt-1">Aktuelle Streak</p>
+                <p class="text-sm text-muted mt-1">Aktuelle Streak</p>
             </div>
-
-            <div class="bg-app-card dark:bg-app-darkcard p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800">
+            <div class="bg-card p-6 rounded-3xl shadow-sm border border-subtle">
                 <div class="flex justify-between items-end mb-4">
                     <div>
                         <h3 class="text-lg font-bold">Tagesziel</h3>
-                        <p class="text-xs text-gray-500" id="goal-text">0 / 20 Karten gelernt</p>
+                        <p class="text-xs text-muted" id="goal-text">0 / 20 Karten gelernt</p>
                     </div>
-                    <button onclick="setDailyGoal()" class="text-app-accent text-sm"><i class="fa-solid fa-pen"></i> Ändern</button>
+                    <button onclick="setDailyGoal()" class="accent-text text-sm"><i class="fa-solid fa-pen"></i> Ändern</button>
                 </div>
-                
-                <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-3 mb-2">
-                    <div id="goal-progress" class="bg-app-accent h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-2">
+                    <div id="goal-progress" class="accent-bg h-3 rounded-full transition-all duration-500" style="width:0%"></div>
                 </div>
             </div>
         </section>
-        
-    </main>
 
-    <!-- Bottom Navigation -->
-    <nav id="bottom-nav" class="hidden fixed bottom-0 w-full bg-app-bg/90 dark:bg-app-darkbg/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 pb-safe pt-2 px-6 z-20">
-        <ul class="flex justify-between items-center pb-4 pt-1">
+    </main><!-- end main -->
+
+    <!-- ═══ BOTTOM NAV (flex-shrink-0: never overlaps content) ═══ -->
+    <nav id="bottom-nav" class="hidden flex-shrink-0 bg-surface border-t border-subtle px-6 pt-2 pb-safe z-20">
+        <ul class="flex justify-between items-center pb-3 pt-1">
             <li>
-                <button onclick="switchView('scan')" id="nav-scan" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                <button onclick="switchView('scan')" id="nav-scan" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-camera text-xl mb-1"></i>
                     <span class="text-[10px] font-medium">Scannen</span>
                 </button>
             </li>
             <li>
-                <button onclick="switchView('learn')" id="nav-learn" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                <button onclick="switchView('learn')" id="nav-learn" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-layer-group text-xl mb-1"></i>
                     <span class="text-[10px] font-medium">Lernen</span>
                 </button>
             </li>
             <li>
-                <button onclick="switchView('list')" id="nav-list" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                <button onclick="switchView('list')" id="nav-list" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-list-ul text-xl mb-1"></i>
-                    <span class="text-[10px] font-medium">Liste</span>
+                    <span class="text-[10px] font-medium">Listen</span>
                 </button>
             </li>
             <li>
-                <button onclick="switchView('goals')" id="nav-goals" class="nav-btn flex flex-col items-center p-2 text-gray-400 hover:text-app-accent transition">
+                <button onclick="switchView('goals')" id="nav-goals" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-bullseye text-xl mb-1"></i>
                     <span class="text-[10px] font-medium">Ziele</span>
                 </button>
@@ -222,431 +368,809 @@
         </ul>
     </nav>
 
-    <!-- App Logic -->
-    <script>
-        const memoryStorage = {};
-        const safeStorage = {
-            getItem(key) {
-                try { return localStorage.getItem(key); } 
-                catch (e) { return memoryStorage[key] || null; }
-            },
-            setItem(key, value) {
-                try { localStorage.setItem(key, value); } 
-                catch (e) { memoryStorage[key] = String(value); }
-            }
-        };
+    <!-- ═══ SETTINGS MODAL ═══ -->
+    <div id="settings-modal" class="modal-overlay hidden" onclick="closeSettingsOnBackdrop(event)">
+        <div class="modal-sheet">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold">Einstellungen</h3>
+                <button onclick="closeSettingsModal()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
 
-        let appState = {
-            vocab: [],
-            dailyGoal: 20,
-            learnedToday: 0,
-            lastStudyDate: '',
-            streak: 0,
-            theme: 'dark',
-            lastBackupCount: 0 // Trackt wann das letzte Backup gemacht wurde
-        };
+            <!-- Theme toggle -->
+            <div class="flex justify-between items-center py-3 border-b border-subtle">
+                <span class="font-medium text-sm">Erscheinungsbild</span>
+                <button onclick="toggleTheme()" id="theme-toggle-btn" class="flex items-center gap-2 text-sm accent-text font-semibold">
+                    <i class="fa-solid fa-moon" id="theme-icon"></i>
+                    <span id="theme-label">Dark</span>
+                </button>
+            </div>
 
-        let currentView = 'scan';
-        let currentCardIndex = 0;
-        let isCardFlipped = false;
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        function initApp() {
-            loadState();
-            applyTheme();
-            checkStreak();
-            checkBackupStatus();
-            
-            const isOnboarded = safeStorage.getItem('onboarded');
-            
-            if (!isOnboarded) {
-                document.getElementById('view-onboarding').classList.remove('hidden');
-            } else {
-                showMainUI();
-                switchView(appState.vocab.length > 0 ? 'learn' : 'scan');
-            }
-        }
-
-        function loadState() {
-            const saved = safeStorage.getItem('vocabAppState');
-            if (saved) {
-                try { appState = { ...appState, ...JSON.parse(saved) }; } catch(e) {}
-            }
-        }
-
-        function saveState() {
-            safeStorage.setItem('vocabAppState', JSON.stringify(appState));
-            updateGoalUI();
-            checkBackupStatus();
-        }
-
-        function checkBackupStatus() {
-            const warningBox = document.getElementById('backup-warning');
-            if(!warningBox) return;
-
-            // Wenn mehr als 10 neue Vokabeln seit dem letzten Export dazugekommen sind, warnen!
-            if (appState.vocab.length > appState.lastBackupCount + 10) {
-                warningBox.classList.remove('hidden');
-            } else {
-                warningBox.classList.add('hidden');
-            }
-        }
-
-        function showMainUI() {
-            document.getElementById('view-onboarding').classList.add('hidden');
-            document.getElementById('main-header').classList.remove('hidden');
-            document.getElementById('bottom-nav').classList.remove('hidden');
-        }
-
-        function finishOnboarding() {
-            safeStorage.setItem('onboarded', 'true');
-            showMainUI();
-            switchView('scan');
-        }
-
-        // --- BACKUP ENGINE (IMPORT & EXPORT) ---
-        function triggerImport() {
-            document.getElementById('backup-input').click();
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedVocab = JSON.parse(e.target.result);
-                    if (Array.isArray(importedVocab)) {
-                        // Zusammenführen ohne Duplikate (basierend auf dem englischen Wort)
-                        const existingWords = new Set(appState.vocab.map(v => v.en.toLowerCase()));
-                        const newEntries = importedVocab.filter(v => v.en && v.de && !existingWords.has(v.en.toLowerCase()));
-
-                        appState.vocab = [...newEntries, ...appState.vocab];
-                        appState.lastBackupCount = appState.vocab.length; // Reset Backup Warning
-                        saveState();
-                        
-                        alert(`Erfolgreich: ${newEntries.length} neue Vokabeln importiert!`);
-                        
-                        // Direkt in die Liste springen, um Erfolg zu sehen
-                        if(localStorage.getItem('onboarded')) {
-                            switchView('list');
-                        } else {
-                            finishOnboarding();
-                        }
-                    } else {
-                        alert("Ungültiges Backup-Format. Muss ein JSON-Array sein.");
-                    }
-                } catch (err) {
-                    alert("Fehler beim Lesen der Datei. Stelle sicher, dass es eine valide exportierte .json Datei ist.");
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function downloadData() {
-            if (appState.vocab.length === 0) {
-                alert("Keine Vokabeln zum Sichern vorhanden.");
-                return;
-            }
-            
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.vocab, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `vocab_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-
-            // Zustand merken, dass Backup aktuell ist
-            appState.lastBackupCount = appState.vocab.length;
-            saveState();
-        }
-
-        // --- Theme ---
-        function toggleTheme() {
-            appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
-            applyTheme();
-            saveState();
-        }
-
-        function applyTheme() {
-            const html = document.documentElement;
-            const icon = document.getElementById('theme-icon');
-            const iconOb = document.getElementById('theme-icon-onboarding');
-            
-            if (appState.theme === 'dark') {
-                html.classList.add('dark');
-                if(icon) { icon.className = 'fa-solid fa-sun text-lg'; }
-                if(iconOb) { iconOb.className = 'fa-solid fa-sun text-xl'; }
-            } else {
-                html.classList.remove('dark');
-                if(icon) { icon.className = 'fa-solid fa-moon text-lg'; }
-                if(iconOb) { iconOb.className = 'fa-solid fa-moon text-xl'; }
-            }
-        }
-
-        // --- Navigation ---
-        function switchView(viewName) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.querySelectorAll('.nav-btn').forEach(b => {
-                b.classList.remove('text-app-accent');
-                b.classList.add('text-gray-400');
-            });
-            
-            const viewEl = document.getElementById(`view-${viewName}`);
-            if(viewEl) viewEl.classList.remove('hidden');
-            
-            const activeBtn = document.getElementById(`nav-${viewName}`);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-gray-400');
-                activeBtn.classList.add('text-app-accent');
-            }
-
-            const titles = { 'scan': 'Scannen', 'learn': 'Lernen', 'list': 'Vokabelliste', 'goals': 'Dein Fortschritt' };
-            document.getElementById('header-title').innerText = titles[viewName] || 'Vocab AI';
-
-            currentView = viewName;
-
-            if (viewName === 'list') renderList();
-            if (viewName === 'goals') updateGoalUI();
-            if (viewName === 'learn') initLearnSession();
-        }
-
-        // --- Scan View ---
-        function simulateAIScan() {
-            const loader = document.getElementById('scan-loader');
-            loader.classList.remove('hidden');
-            
-            setTimeout(() => {
-                loader.classList.add('hidden');
-                
-                const dummyData = [
-                    { id: Date.now(), en: "rational", de: "rational / vernünftig" },
-                    { id: Date.now()+1, en: "progressive", de: "fortschrittlich" },
-                    { id: Date.now()+2, en: "efficiency", de: "Effizienz" },
-                    { id: Date.now()+3, en: "minimalist", de: "minimalistisch" }
-                ];
-                
-                appState.vocab = [...appState.vocab, ...dummyData];
-                saveState();
-                switchView('list');
-            }, 2000);
-        }
-
-        // --- List View ---
-        function renderList() {
-            const container = document.getElementById('vocab-list');
-            if(!container) return;
-            container.innerHTML = '';
-
-            if (appState.vocab.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 mt-10">Noch keine Vokabeln vorhanden.</p>';
-                return;
-            }
-
-            appState.vocab.forEach((v, index) => {
-                const item = document.createElement('div');
-                item.className = 'bg-app-card dark:bg-app-darkcard p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 flex justify-between items-center';
-                item.innerHTML = `
-                    <div>
-                        <p class="font-bold text-lg">${v.en}</p>
-                        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">${v.de}</p>
+            <!-- Accent color -->
+            <div class="py-4 border-b border-subtle">
+                <p class="font-medium text-sm mb-3">Akzentfarbe</p>
+                <div class="flex gap-4 items-center">
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="accent-dot" data-accent="indigo" style="background:#6366f1" onclick="setAccent('indigo')"></button>
+                        <span class="text-xs text-muted">Indigo</span>
                     </div>
-                    <div class="flex gap-4">
-                        <button onclick="editVocab(${index})" class="text-gray-400 hover:text-app-accent transition"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteVocab(${index})" class="text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button>
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="accent-dot" data-accent="teal" style="background:#14b8a6" onclick="setAccent('teal')"></button>
+                        <span class="text-xs text-muted">Teal</span>
                     </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function addManualVocab() {
-            const en = prompt("Vorderseite (Englisch):");
-            if (!en) return;
-            const de = prompt("Rückseite (Deutsch):");
-            if (!de) return;
-
-            appState.vocab.unshift({ id: Date.now(), en, de });
-            saveState();
-            renderList();
-        }
-
-        function editVocab(index) {
-            const item = appState.vocab[index];
-            const en = prompt("Vorderseite anpassen:", item.en);
-            if (en === null) return;
-            const de = prompt("Rückseite anpassen:", item.de);
-            if (de === null) return;
-
-            appState.vocab[index] = { ...item, en, de };
-            saveState();
-            renderList();
-        }
-
-        function deleteVocab(index) {
-            if (confirm("Wirklich löschen?")) {
-                appState.vocab.splice(index, 1);
-                saveState();
-                renderList();
-            }
-        }
-
-        // --- Learn View ---
-        function initLearnSession() {
-            currentCardIndex = 0;
-            isCardFlipped = false;
-            updateLearnCounter();
-            renderFlashcard();
-        }
-
-        function updateLearnCounter() {
-            const counter = document.getElementById('learn-counter');
-            if(counter) counter.innerText = `${appState.learnedToday} / ${appState.dailyGoal}`;
-        }
-
-        function renderFlashcard() {
-            const container = document.getElementById('flashcard-container');
-            const actionBtns = document.getElementById('learn-actions');
-            if(!container) return;
-            
-            if (appState.vocab.length === 0) {
-                container.innerHTML = `
-                    <div class="h-full w-full bg-app-card dark:bg-app-darkcard rounded-3xl flex items-center justify-center p-8 text-center border border-gray-100 dark:border-gray-800">
-                        <p class="text-gray-500">Keine Vokabeln vorhanden.<br>Gehe zu 'Scannen'.</p>
-                    </div>`;
-                if(actionBtns) { actionBtns.style.opacity = "0"; actionBtns.style.pointerEvents = "none"; }
-                return;
-            }
-
-            const cardData = appState.vocab[currentCardIndex];
-            
-            container.innerHTML = `
-                <div id="flashcard" class="w-full h-96 relative preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()">
-                    <div class="absolute inset-0 backface-hidden bg-app-card dark:bg-app-darkcard rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col justify-center items-center p-8 text-center">
-                        <span class="absolute top-4 left-4 text-xs font-bold text-gray-400">Vorderseite</span>
-                        <h2 class="text-4xl font-bold">${cardData.en}</h2>
-                        <p class="mt-8 text-gray-400 text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>Tippen zum Drehen</p>
-                    </div>
-                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-app-accent rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
-                        <span class="absolute top-4 left-4 text-xs font-bold text-white/60">Rückseite</span>
-                        <h2 class="text-3xl font-bold">${cardData.de}</h2>
+                    <div class="flex flex-col items-center gap-1">
+                        <button class="accent-dot" data-accent="violet" style="background:#8b5cf6" onclick="setAccent('violet')"></button>
+                        <span class="text-xs text-muted">Violet</span>
                     </div>
                 </div>
-            `;
+            </div>
 
-            const cardElement = document.getElementById('flashcard');
-            cardElement.addEventListener('touchstart', handleTouchStart, false);
-            cardElement.addEventListener('touchend', handleTouchEnd, false);
+            <!-- Data actions -->
+            <div class="pt-4 space-y-3">
+                <button onclick="triggerImport(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-upload accent-text"></i> Backup importieren
+                </button>
+                <button onclick="downloadData(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-download accent-text"></i> Backup exportieren
+                </button>
+            </div>
+        </div>
+    </div>
 
-            isCardFlipped = false;
-            if(actionBtns) { actionBtns.style.opacity = "0"; actionBtns.style.pointerEvents = "none"; }
+    <!-- ═══ APP LOGIC ═══ -->
+    <script>
+    // ══════════════════════════════════════════════
+    //  IndexedDB Layer
+    // ══════════════════════════════════════════════
+    const DB_NAME = 'VocabAI';
+    const DB_VERSION = 1;
+    const STORE_META = 'meta';   // key-value for settings/state
+    const STORE_DECKS = 'decks'; // deck objects: { id, name, words[] }
+
+    let db = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = e => {
+                const d = e.target.result;
+                if (!d.objectStoreNames.contains(STORE_META))
+                    d.createObjectStore(STORE_META);
+                if (!d.objectStoreNames.contains(STORE_DECKS))
+                    d.createObjectStore(STORE_DECKS, { keyPath: 'id' });
+            };
+            req.onsuccess = e => { db = e.target.result; resolve(db); };
+            req.onerror   = e => reject(e.target.error);
+        });
+    }
+
+    function dbGet(store, key) {
+        return new Promise((resolve, reject) => {
+            const tx  = db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).get(key);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror   = e => reject(e.target.error);
+        });
+    }
+
+    function dbPut(store, value, key) {
+        return new Promise((resolve, reject) => {
+            const tx  = db.transaction(store, 'readwrite');
+            const req = key !== undefined
+                ? tx.objectStore(store).put(value, key)
+                : tx.objectStore(store).put(value);
+            req.onsuccess = () => resolve();
+            req.onerror   = e => reject(e.target.error);
+        });
+    }
+
+    function dbDelete(store, key) {
+        return new Promise((resolve, reject) => {
+            const tx  = db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).delete(key);
+            req.onsuccess = () => resolve();
+            req.onerror   = e => reject(e.target.error);
+        });
+    }
+
+    function dbGetAll(store) {
+        return new Promise((resolve, reject) => {
+            const tx  = db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror   = e => reject(e.target.error);
+        });
+    }
+
+    // ══════════════════════════════════════════════
+    //  App State (in-memory, synced with IDB)
+    // ══════════════════════════════════════════════
+    let appState = {
+        dailyGoal:      20,
+        learnedToday:   0,
+        lastStudyDate:  '',
+        streak:         0,
+        theme:          'dark',
+        accent:         'indigo',
+        lastBackupWordCount: 0,
+        lastLearnDeckId: null  // remember last used deck
+    };
+
+    // Decks: [{ id: number, name: string, words: [{id, en, de}] }]
+    let decks = [];
+
+    // Learn session state
+    let currentLearnDeck = null; // deck object currently being studied
+    let currentCardIndex = 0;
+    let isCardFlipped    = false;
+    let touchStartX = 0, touchEndX = 0;
+
+    // Deck detail state
+    let currentDetailDeckId = null;
+
+    // ══════════════════════════════════════════════
+    //  Init
+    // ══════════════════════════════════════════════
+    async function initApp() {
+        await openDB();
+        await loadState();
+        await loadDecks();
+        applyTheme();
+        applyAccent();
+        checkStreak();
+        populateScanDeckSelector();
+
+        const onboarded = await dbGet(STORE_META, 'onboarded');
+        if (!onboarded) {
+            document.getElementById('view-onboarding').classList.remove('hidden');
+            updateAccentDots();
+        } else {
+            showMainUI();
+            const hasWords = decks.some(d => d.words.length > 0);
+            switchView(hasWords ? 'learn' : 'scan');
         }
+    }
 
-        function flipCard() {
-            const card = document.getElementById('flashcard');
-            const actionBtns = document.getElementById('learn-actions');
-            if (!card || !actionBtns) return;
+    // ══════════════════════════════════════════════
+    //  Persistence
+    // ══════════════════════════════════════════════
+    async function loadState() {
+        const saved = await dbGet(STORE_META, 'appState');
+        if (saved) appState = { ...appState, ...saved };
+    }
 
-            isCardFlipped = !isCardFlipped;
-            if (isCardFlipped) {
-                card.classList.add('rotate-y-180');
-                actionBtns.style.opacity = "1";
-                actionBtns.style.pointerEvents = "auto";
+    async function saveState() {
+        await dbPut(STORE_META, appState, 'appState');
+        updateGoalUI();
+        checkBackupStatus();
+    }
+
+    async function loadDecks() {
+        decks = await dbGetAll(STORE_DECKS);
+        // Sort by id (creation order)
+        decks.sort((a, b) => a.id - b.id);
+        if (decks.length === 0) {
+            // Create default deck
+            const def = { id: Date.now(), name: 'Standard-Liste', words: [] };
+            await dbPut(STORE_DECKS, def);
+            decks = [def];
+        }
+    }
+
+    async function saveDeck(deck) {
+        await dbPut(STORE_DECKS, deck);
+        // keep in-memory array in sync
+        const idx = decks.findIndex(d => d.id === deck.id);
+        if (idx >= 0) decks[idx] = deck; else decks.push(deck);
+    }
+
+    async function deleteDeck(deckId) {
+        await dbDelete(STORE_DECKS, deckId);
+        decks = decks.filter(d => d.id !== deckId);
+    }
+
+    // Total word count across all decks (for backup warning)
+    function totalWordCount() {
+        return decks.reduce((s, d) => s + d.words.length, 0);
+    }
+
+    // ══════════════════════════════════════════════
+    //  Theme & Accent
+    // ══════════════════════════════════════════════
+    function toggleTheme() {
+        appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+        applyTheme();
+        saveState();
+    }
+
+    function applyTheme() {
+        const html = document.documentElement;
+        const icon  = document.getElementById('theme-icon');
+        const iconOb = document.getElementById('theme-icon-onboarding');
+        const label = document.getElementById('theme-label');
+
+        if (appState.theme === 'dark') {
+            html.classList.add('dark');
+            if (icon)  icon.className  = 'fa-solid fa-sun';
+            if (iconOb) iconOb.className = 'fa-solid fa-sun text-xl';
+            if (label) label.textContent = 'Dark';
+        } else {
+            html.classList.remove('dark');
+            if (icon)  icon.className  = 'fa-solid fa-moon';
+            if (iconOb) iconOb.className = 'fa-solid fa-moon text-xl';
+            if (label) label.textContent = 'Hell';
+        }
+    }
+
+    function setAccent(name) {
+        appState.accent = name;
+        applyAccent();
+        updateAccentDots();
+        saveState();
+    }
+
+    function applyAccent() {
+        document.documentElement.dataset.accent = appState.accent || 'indigo';
+    }
+
+    function updateAccentDots() {
+        document.querySelectorAll('.accent-dot').forEach(btn => {
+            if (btn.dataset.accent === appState.accent) {
+                btn.classList.add('selected');
             } else {
-                card.classList.remove('rotate-y-180');
-                actionBtns.style.opacity = "0";
-                actionBtns.style.pointerEvents = "none";
+                btn.classList.remove('selected');
             }
+        });
+    }
+
+    // ══════════════════════════════════════════════
+    //  Settings Modal
+    // ══════════════════════════════════════════════
+    function openSettingsModal() {
+        document.getElementById('settings-modal').classList.remove('hidden');
+        updateAccentDots();
+        applyTheme();
+    }
+    function closeSettingsModal() {
+        document.getElementById('settings-modal').classList.add('hidden');
+    }
+    function closeSettingsOnBackdrop(e) {
+        if (e.target === document.getElementById('settings-modal')) closeSettingsModal();
+    }
+
+    // ══════════════════════════════════════════════
+    //  Onboarding
+    // ══════════════════════════════════════════════
+    function showMainUI() {
+        document.getElementById('view-onboarding').classList.add('hidden');
+        document.getElementById('main-header').classList.remove('hidden');
+        document.getElementById('bottom-nav').classList.remove('hidden');
+    }
+
+    async function finishOnboarding() {
+        await dbPut(STORE_META, true, 'onboarded');
+        showMainUI();
+        switchView('scan');
+    }
+
+    // ══════════════════════════════════════════════
+    //  Navigation
+    // ══════════════════════════════════════════════
+    function switchView(viewName) {
+        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        document.querySelectorAll('.nav-btn').forEach(b => {
+            b.classList.remove('nav-active');
+        });
+
+        // Special: deck-detail is a sub-view of list
+        const target = viewName === 'deck-detail' ? 'list' : viewName;
+        const viewEl = document.getElementById(`view-${viewName}`);
+        if (viewEl) viewEl.classList.remove('hidden');
+
+        const activeBtn = document.getElementById(`nav-${target}`);
+        if (activeBtn) activeBtn.classList.add('nav-active');
+
+        const titles = {
+            'scan':        'Scannen',
+            'learn':       'Lernen',
+            'list':        'Listen',
+            'deck-detail': 'Liste',
+            'goals':       'Fortschritt'
+        };
+        document.getElementById('header-title').textContent = titles[viewName] || 'Vocab AI';
+
+        // Back button visibility
+        const backBtn = document.getElementById('header-back-btn');
+        backBtn.classList.toggle('hidden', viewName !== 'deck-detail');
+
+        if (viewName === 'list')        renderDeckOverview();
+        if (viewName === 'goals')       updateGoalUI();
+        if (viewName === 'learn')       initLearnView();
+        if (viewName === 'scan')        populateScanDeckSelector();
+        if (viewName === 'deck-detail') renderDeckDetail();
+    }
+
+    function handleBackBtn() {
+        switchView('list');
+    }
+
+    // ══════════════════════════════════════════════
+    //  Backup
+    // ══════════════════════════════════════════════
+    function triggerImport() {
+        document.getElementById('backup-input').click();
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                // Support two formats:
+                // 1. New format: array of deck objects [{ id, name, words }]
+                // 2. Legacy flat array: [{en, de}]
+                if (Array.isArray(data) && data.length > 0 && data[0].words !== undefined) {
+                    // New deck format
+                    let imported = 0;
+                    for (const deck of data) {
+                        const existing = decks.find(d => d.id === deck.id);
+                        if (!existing) {
+                            await saveDeck(deck);
+                            imported += deck.words.length;
+                        }
+                    }
+                    appState.lastBackupWordCount = totalWordCount();
+                    await saveState();
+                    alert(`Erfolgreich importiert! ${imported} neue Vokabeln.`);
+                } else if (Array.isArray(data) && data[0]?.en) {
+                    // Legacy flat array → add to first deck
+                    const target = decks[0];
+                    const existingWords = new Set(target.words.map(w => w.en.toLowerCase()));
+                    const newWords = data.filter(w => w.en && w.de && !existingWords.has(w.en.toLowerCase()))
+                                        .map(w => ({ id: Date.now() + Math.random(), en: w.en, de: w.de }));
+                    target.words = [...newWords, ...target.words];
+                    await saveDeck(target);
+                    appState.lastBackupWordCount = totalWordCount();
+                    await saveState();
+                    alert(`${newWords.length} Vokabeln in "${target.name}" importiert.`);
+                } else {
+                    alert('Unbekanntes Backup-Format.');
+                    return;
+                }
+                const onboarded = await dbGet(STORE_META, 'onboarded');
+                if (onboarded) switchView('list'); else finishOnboarding();
+            } catch (err) {
+                alert('Fehler beim Lesen der Datei.');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    async function downloadData() {
+        if (totalWordCount() === 0) { alert('Keine Vokabeln zum Sichern.'); return; }
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(decks, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `vocab_backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        appState.lastBackupWordCount = totalWordCount();
+        await saveState();
+    }
+
+    function checkBackupStatus() {
+        const box = document.getElementById('backup-warning');
+        if (!box) return;
+        const diff = totalWordCount() - (appState.lastBackupWordCount || 0);
+        box.classList.toggle('hidden', diff <= 10);
+    }
+
+    // ══════════════════════════════════════════════
+    //  Scan View
+    // ══════════════════════════════════════════════
+    function populateScanDeckSelector() {
+        const sel = document.getElementById('scan-target-deck');
+        if (!sel) return;
+        sel.innerHTML = decks.map(d =>
+            `<option value="${d.id}">${d.name} (${d.words.length} Wörter)</option>`
+        ).join('');
+    }
+
+    async function simulateAIScan() {
+        const loader = document.getElementById('scan-loader');
+        loader.classList.remove('hidden');
+
+        await new Promise(r => setTimeout(r, 1800));
+        loader.classList.add('hidden');
+
+        const sel = document.getElementById('scan-target-deck');
+        const deckId = sel ? parseInt(sel.value) : decks[0].id;
+        const deck = decks.find(d => d.id === deckId) || decks[0];
+
+        const dummy = [
+            { id: Date.now(),   en: 'rational',    de: 'rational / vernünftig' },
+            { id: Date.now()+1, en: 'progressive', de: 'fortschrittlich'       },
+            { id: Date.now()+2, en: 'efficiency',  de: 'Effizienz'             },
+            { id: Date.now()+3, en: 'minimalist',  de: 'minimalistisch'        }
+        ];
+        deck.words = [...deck.words, ...dummy];
+        await saveDeck(deck);
+        await saveState();
+        currentDetailDeckId = deck.id;
+        switchView('deck-detail');
+    }
+
+    // ══════════════════════════════════════════════
+    //  List View – Deck Overview
+    // ══════════════════════════════════════════════
+    function renderDeckOverview() {
+        const container = document.getElementById('deck-overview');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (decks.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted mt-10 text-sm">Noch keine Listen vorhanden.</p>';
+            return;
         }
 
-        function handleCardResult(type) {
-            if (type === 'known') { incrementGoal(); }
-            nextCard('left');
+        decks.forEach(deck => {
+            const item = document.createElement('div');
+            item.className = 'deck-item bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center cursor-pointer';
+            item.innerHTML = `
+                <div onclick="openDeckDetail(${deck.id})" class="flex-1 min-w-0">
+                    <p class="font-bold text-base truncate">${escapeHtml(deck.name)}</p>
+                    <p class="text-muted text-xs mt-1">${deck.words.length} Vokabel${deck.words.length !== 1 ? 'n' : ''}</p>
+                </div>
+                <div class="flex gap-3 items-center ml-3 flex-shrink-0">
+                    <button onclick="event.stopPropagation(); openDeckDetail(${deck.id})" class="accent-text text-sm" title="Öffnen">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button onclick="event.stopPropagation(); renameDeck(${deck.id})" class="text-muted hover:accent-text transition text-sm" title="Umbenennen">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button onclick="event.stopPropagation(); confirmDeleteDeck(${deck.id})" class="text-muted hover:text-red-500 transition text-sm" title="Löschen">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    async function createNewDeck() {
+        const name = prompt('Name der neuen Liste:');
+        if (!name || !name.trim()) return;
+        const deck = { id: Date.now(), name: name.trim(), words: [] };
+        await saveDeck(deck);
+        renderDeckOverview();
+        populateScanDeckSelector();
+    }
+
+    async function renameDeck(deckId) {
+        const deck = decks.find(d => d.id === deckId);
+        if (!deck) return;
+        const name = prompt('Neuer Name:', deck.name);
+        if (!name || !name.trim()) return;
+        deck.name = name.trim();
+        await saveDeck(deck);
+        renderDeckOverview();
+        populateScanDeckSelector();
+    }
+
+    async function confirmDeleteDeck(deckId) {
+        const deck = decks.find(d => d.id === deckId);
+        if (!deck) return;
+        if (decks.length === 1) { alert('Du kannst die letzte Liste nicht löschen.'); return; }
+        if (!confirm(`Liste "${deck.name}" mit ${deck.words.length} Vokabeln löschen?`)) return;
+        await deleteDeck(deckId);
+        renderDeckOverview();
+        populateScanDeckSelector();
+    }
+
+    function openDeckDetail(deckId) {
+        currentDetailDeckId = deckId;
+        switchView('deck-detail');
+    }
+
+    // ══════════════════════════════════════════════
+    //  Deck Detail View
+    // ══════════════════════════════════════════════
+    function renderDeckDetail() {
+        const deck = decks.find(d => d.id === currentDetailDeckId);
+        if (!deck) { switchView('list'); return; }
+
+        document.getElementById('deck-detail-title').textContent = deck.name;
+        document.getElementById('deck-detail-count').textContent = `${deck.words.length} Vokabeln`;
+
+        const container = document.getElementById('vocab-list');
+        container.innerHTML = '';
+
+        if (deck.words.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted mt-8 text-sm">Noch leer. Füge Vokabeln hinzu.</p>';
+            return;
         }
 
-        function nextCard(direction = 'left') {
-            if (appState.vocab.length <= 1) {
-                initLearnSession();
+        deck.words.forEach((w, idx) => {
+            const item = document.createElement('div');
+            item.className = 'bg-card p-4 rounded-2xl border border-subtle flex justify-between items-center';
+            item.innerHTML = `
+                <div class="min-w-0 flex-1">
+                    <p class="font-bold">${escapeHtml(w.en)}</p>
+                    <p class="text-muted text-sm mt-0.5">${escapeHtml(w.de)}</p>
+                </div>
+                <div class="flex gap-3 ml-3 flex-shrink-0">
+                    <button onclick="editVocab(${idx})" class="text-muted hover:accent-text transition"><i class="fa-solid fa-pen text-sm"></i></button>
+                    <button onclick="deleteVocab(${idx})" class="text-muted hover:text-red-500 transition"><i class="fa-solid fa-trash text-sm"></i></button>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    async function addManualVocab() {
+        const deck = decks.find(d => d.id === currentDetailDeckId);
+        if (!deck) return;
+        const en = prompt('Vorderseite (z.B. Spanisch):');
+        if (!en) return;
+        const de = prompt('Rückseite (z.B. Deutsch):');
+        if (!de) return;
+        deck.words.unshift({ id: Date.now(), en: en.trim(), de: de.trim() });
+        await saveDeck(deck);
+        renderDeckDetail();
+    }
+
+    async function editVocab(idx) {
+        const deck = decks.find(d => d.id === currentDetailDeckId);
+        if (!deck) return;
+        const w = deck.words[idx];
+        const en = prompt('Vorderseite:', w.en);
+        if (en === null) return;
+        const de = prompt('Rückseite:', w.de);
+        if (de === null) return;
+        deck.words[idx] = { ...w, en: en.trim(), de: de.trim() };
+        await saveDeck(deck);
+        renderDeckDetail();
+    }
+
+    async function deleteVocab(idx) {
+        const deck = decks.find(d => d.id === currentDetailDeckId);
+        if (!deck) return;
+        if (!confirm('Wirklich löschen?')) return;
+        deck.words.splice(idx, 1);
+        await saveDeck(deck);
+        renderDeckDetail();
+    }
+
+    // ══════════════════════════════════════════════
+    //  Learn View
+    // ══════════════════════════════════════════════
+    function initLearnView() {
+        const selector = document.getElementById('learn-deck-selector');
+        const session  = document.getElementById('learn-session');
+
+        // If only one deck and it has words, jump straight in
+        const decksWithWords = decks.filter(d => d.words.length > 0);
+        if (decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) {
+            const autoId = appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0)
+                ? appState.lastLearnDeckId
+                : decksWithWords[0]?.id;
+            if (autoId) {
+                startLearnSession(autoId);
                 return;
             }
-
-            const card = document.getElementById('flashcard');
-            if(!card) return;
-            
-            card.classList.add(direction === 'left' ? 'swipe-left' : 'swipe-right');
-
-            setTimeout(() => {
-                if (direction === 'left') {
-                    currentCardIndex = (currentCardIndex + 1) % appState.vocab.length;
-                } else {
-                    currentCardIndex = (currentCardIndex - 1 + appState.vocab.length) % appState.vocab.length;
-                }
-                isCardFlipped = false;
-                renderFlashcard();
-            }, 300);
         }
 
-        function handleTouchStart(evt) { touchStartX = evt.changedTouches[0].screenX; }
-        function handleTouchEnd(evt) { touchEndX = evt.changedTouches[0].screenX; handleSwipe(); }
+        // Show deck picker
+        selector.classList.remove('hidden');
+        session.classList.add('hidden');
 
-        function handleSwipe() {
-            const threshold = 50;
-            if (touchEndX < touchStartX - threshold) { nextCard('left'); }
-            if (touchEndX > touchStartX + threshold) { nextCard('right'); }
+        const list = document.getElementById('learn-deck-list');
+        list.innerHTML = '';
+
+        if (decksWithWords.length === 0) {
+            list.innerHTML = '<p class="text-center text-muted text-sm">Noch keine Vokabeln. Gehe zu Scannen.</p>';
+            return;
         }
 
-        // --- Goals & Streak ---
-        function checkStreak() {
-            const today = new Date().toDateString();
-            if (appState.lastStudyDate !== today) {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                
-                if (appState.lastStudyDate !== yesterday.toDateString() && appState.lastStudyDate !== '') {
-                    appState.streak = 0;
-                }
-                appState.learnedToday = 0;
+        // "All" option
+        if (decksWithWords.length > 1) {
+            const allBtn = document.createElement('button');
+            allBtn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center accent-text font-bold text-sm';
+            const total = decksWithWords.reduce((s,d) => s + d.words.length, 0);
+            allBtn.innerHTML = `<span>🗂 Alle Listen</span><span class="text-muted font-normal">${total} Wörter</span>`;
+            allBtn.onclick = () => startLearnSession('all');
+            list.appendChild(allBtn);
+        }
+
+        decksWithWords.forEach(d => {
+            const btn = document.createElement('button');
+            btn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center text-sm';
+            btn.innerHTML = `<span class="font-semibold">${escapeHtml(d.name)}</span><span class="text-muted">${d.words.length} Wörter <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>`;
+            btn.onclick = () => startLearnSession(d.id);
+            list.appendChild(btn);
+        });
+    }
+
+    async function startLearnSession(deckIdOrAll) {
+        let words = [];
+        let label = '';
+
+        if (deckIdOrAll === 'all') {
+            words = decks.flatMap(d => d.words);
+            label = 'Alle Listen';
+            currentLearnDeck = null;
+        } else {
+            const deck = decks.find(d => d.id === deckIdOrAll);
+            if (!deck) return;
+            words = deck.words;
+            label = deck.name;
+            currentLearnDeck = deck;
+            appState.lastLearnDeckId = deck.id;
+            await saveState();
+        }
+
+        document.getElementById('learn-deck-name-label').textContent = label;
+        document.getElementById('learn-deck-selector').classList.add('hidden');
+        document.getElementById('learn-session').classList.remove('hidden');
+
+        currentCardIndex = 0;
+        isCardFlipped = false;
+
+        // Attach words to session state
+        window._learnWords = words;
+        updateLearnCounter();
+        renderFlashcard();
+    }
+
+    function exitLearnSession() {
+        currentLearnDeck = null;
+        window._learnWords = [];
+        appState.lastLearnDeckId = null;
+        saveState();
+        initLearnView();
+    }
+
+    function updateLearnCounter() {
+        const el = document.getElementById('learn-counter');
+        if (el) el.textContent = `${appState.learnedToday} / ${appState.dailyGoal}`;
+    }
+
+    function renderFlashcard() {
+        const container   = document.getElementById('flashcard-container');
+        const actionBtns  = document.getElementById('learn-actions');
+        if (!container) return;
+
+        const words = window._learnWords || [];
+        if (words.length === 0) {
+            container.innerHTML = `
+                <div class="w-full h-full flex items-center justify-center bg-card rounded-3xl border border-subtle p-8 text-center" style="min-height:200px">
+                    <p class="text-muted">Keine Vokabeln in dieser Liste.<br>Gehe zu <strong>Scannen</strong>.</p>
+                </div>`;
+            if (actionBtns) { actionBtns.style.opacity='0'; actionBtns.style.pointerEvents='none'; }
+            return;
+        }
+
+        const word = words[currentCardIndex];
+        container.innerHTML = `
+            <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
+                <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-8 text-center">
+                    <span class="absolute top-4 left-4 text-xs font-bold text-muted">Vorderseite</span>
+                    <h2 class="text-4xl font-bold">${escapeHtml(word.en)}</h2>
+                    <p class="mt-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>Tippen zum Drehen</p>
+                </div>
+                <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
+                    <span class="absolute top-4 left-4 text-xs font-bold text-white/60">Rückseite</span>
+                    <h2 class="text-3xl font-bold">${escapeHtml(word.de)}</h2>
+                </div>
+            </div>`;
+
+        const card = document.getElementById('flashcard');
+        card.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
+        card.addEventListener('touchend',   e => { touchEndX = e.changedTouches[0].screenX; handleSwipe(); }, false);
+
+        isCardFlipped = false;
+        if (actionBtns) { actionBtns.style.opacity='0'; actionBtns.style.pointerEvents='none'; }
+    }
+
+    function flipCard() {
+        const card = document.getElementById('flashcard');
+        const btns = document.getElementById('learn-actions');
+        if (!card || !btns) return;
+        isCardFlipped = !isCardFlipped;
+        if (isCardFlipped) {
+            card.classList.add('rotate-y-180');
+            btns.style.opacity = '1'; btns.style.pointerEvents = 'auto';
+        } else {
+            card.classList.remove('rotate-y-180');
+            btns.style.opacity = '0'; btns.style.pointerEvents = 'none';
+        }
+    }
+
+    function handleCardResult(type) {
+        if (type === 'known') incrementGoal();
+        nextCard('left');
+    }
+
+    function nextCard(dir = 'left') {
+        const words = window._learnWords || [];
+        if (words.length <= 1) { renderFlashcard(); return; }
+
+        const card = document.getElementById('flashcard');
+        if (!card) return;
+        card.classList.add(dir === 'left' ? 'swipe-left' : 'swipe-right');
+
+        setTimeout(() => {
+            currentCardIndex = dir === 'left'
+                ? (currentCardIndex + 1) % words.length
+                : (currentCardIndex - 1 + words.length) % words.length;
+            isCardFlipped = false;
+            renderFlashcard();
+        }, 300);
+    }
+
+    function handleSwipe() {
+        const t = 50;
+        if (touchEndX < touchStartX - t) nextCard('left');
+        if (touchEndX > touchStartX + t) nextCard('right');
+    }
+
+    // ══════════════════════════════════════════════
+    //  Goals & Streak
+    // ══════════════════════════════════════════════
+    function checkStreak() {
+        const today = new Date().toDateString();
+        if (appState.lastStudyDate !== today) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (appState.lastStudyDate !== yesterday.toDateString() && appState.lastStudyDate !== '') {
+                appState.streak = 0;
             }
-            saveState();
+            appState.learnedToday = 0;
         }
+        saveState();
+    }
 
-        function incrementGoal() {
-            const today = new Date().toDateString();
-            if (appState.learnedToday === 0 && appState.lastStudyDate !== today) {
-                appState.streak += 1;
-                appState.lastStudyDate = today;
-            }
-            appState.learnedToday += 1;
-            saveState();
-            updateLearnCounter();
+    async function incrementGoal() {
+        const today = new Date().toDateString();
+        if (appState.learnedToday === 0 && appState.lastStudyDate !== today) {
+            appState.streak += 1;
+            appState.lastStudyDate = today;
         }
+        appState.learnedToday += 1;
+        await saveState();
+        updateLearnCounter();
+    }
 
-        function setDailyGoal() {
-            const input = prompt("Tagesziel (Anzahl Karten):", appState.dailyGoal);
-            if (input && !isNaN(input)) {
-                appState.dailyGoal = parseInt(input, 10);
-                saveState();
-            }
-        }
+    function setDailyGoal() {
+        const v = prompt('Tagesziel (Anzahl Karten):', appState.dailyGoal);
+        if (v && !isNaN(v)) { appState.dailyGoal = parseInt(v, 10); saveState(); }
+    }
 
-        function updateGoalUI() {
-            const streakEl = document.getElementById('streak-count');
-            const goalEl = document.getElementById('goal-text');
-            const progressEl = document.getElementById('goal-progress');
+    function updateGoalUI() {
+        const el1 = document.getElementById('streak-count');
+        const el2 = document.getElementById('goal-text');
+        const el3 = document.getElementById('goal-progress');
+        if (el1) el1.textContent = appState.streak;
+        if (el2) el2.textContent = `${appState.learnedToday} / ${appState.dailyGoal} Karten gelernt`;
+        if (el3) el3.style.width = `${Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100)}%`;
+    }
 
-            if(streakEl) streakEl.innerText = appState.streak;
-            if(goalEl) goalEl.innerText = `${appState.learnedToday} / ${appState.dailyGoal} Karten gelernt`;
-            
-            if(progressEl) {
-                const progress = Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100);
-                progressEl.style.width = `${progress}%`;
-            }
-        }
+    // ══════════════════════════════════════════════
+    //  Utilities
+    // ══════════════════════════════════════════════
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
-        document.addEventListener('DOMContentLoaded', initApp);
+    // ══════════════════════════════════════════════
+    //  Boot
+    // ══════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
