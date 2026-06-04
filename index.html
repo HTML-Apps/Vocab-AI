@@ -22,7 +22,6 @@
     <script>
         tailwind.config = {
             darkMode: 'class',
-            // NEU: Warnung unterdrücken
             corePlugins: { preflight: true },
             theme: {
                 extend: {
@@ -100,7 +99,7 @@
         .text-muted   { color: #64748b; }
         .dark .text-muted { color: #94a3b8; }
 
-        /* ── Flashcard: fill available height ── */
+        /* ── Flashcard ── */
         #flashcard-wrapper {
             flex: 1 1 0%;
             min-height: 0;
@@ -123,7 +122,6 @@
             min-height: 220px;
         }
 
-        /* ── Deck list item hover ── */
         .deck-item { transition: transform 0.15s, box-shadow 0.15s; }
         .deck-item:active { transform: scale(0.98); }
 
@@ -144,7 +142,6 @@
         .modal-sheet { background: #fff; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* ── Accent picker circle ── */
         .accent-dot {
             width: 1.4rem; height: 1.4rem;
             border-radius: 50%;
@@ -155,10 +152,8 @@
         .accent-dot:hover { transform: scale(1.1); }
         .accent-dot.selected { border-color: white; box-shadow: 0 0 0 2px var(--color-primary); }
 
-        /* ── Deck detail back button ── */
         .back-btn { cursor: pointer; }
 
-        /* ── Language picker buttons on Onboarding ── */
         .lang-btn {
             display: flex;
             align-items: center;
@@ -175,104 +170,24 @@
             cursor: pointer;
         }
         .lang-btn:active { transform: scale(0.97); }
-        .lang-btn.lang-de {
-            background: var(--color-primary-light);
-            color: var(--color-primary);
-            border-color: var(--color-primary);
-        }
-        .lang-btn.lang-en {
-            background: transparent;
-            color: #64748b;
-            border-color: #cbd5e1;
-        }
+        .lang-btn.lang-de { background: var(--color-primary-light); color: var(--color-primary); border-color: var(--color-primary); }
+        .lang-btn.lang-en { background: transparent; color: #64748b; border-color: #cbd5e1; }
         .dark .lang-btn.lang-en { color: #94a3b8; border-color: #334155; }
-        .lang-btn.lang-selected {
-            background: var(--color-primary);
-            color: #fff;
-            border-color: var(--color-primary);
-        }
+        .lang-btn.lang-selected { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 
-        /* ── Language toggle in Settings ── */
         .lang-toggle-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            padding: 0.3rem 0.75rem;
-            border-radius: 0.6rem;
-            border: 1.5px solid var(--color-primary);
-            color: var(--color-primary);
-            background: transparent;
-            cursor: pointer;
-            transition: background 0.15s;
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.8rem; font-weight: 600; padding: 0.3rem 0.75rem;
+            border-radius: 0.6rem; border: 1.5px solid var(--color-primary);
+            color: var(--color-primary); background: transparent;
+            cursor: pointer; transition: background 0.15s;
         }
         .lang-toggle-btn:hover { background: var(--color-primary-light); }
-
-        /* ── Dynamic text scaling on flashcard ── */
-        .card-face-content {
-            max-height: 100%;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-        .card-face-content::-webkit-scrollbar { width: 4px; }
-        .card-face-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
-        .card-face-content.dark-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
-
-        /* ── Learn mode banner ── */
-        #learn-mode-banner {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.6rem 1rem;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            background: var(--color-primary);
-            color: #fff;
-            border-radius: 0 0 0.75rem 0.75rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease;
-        }
-        #learn-mode-banner.visible {
-            opacity: 1;
-        }
-
-        /* ── Scan preview popup ── */
-        #scan-preview-popup {
-            position: fixed; inset: 0; z-index: 80;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            display: flex; align-items: flex-end; justify-content: center;
-        }
-        #scan-preview-popup .popup-sheet {
-            width: 100%; max-width: 480px;
-            max-height: 85vh;
-            display: flex; flex-direction: column;
-            border-radius: 1.5rem 1.5rem 0 0;
-            padding: 1.25rem 1.25rem 2.25rem;
-            animation: slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
-        }
-        .dark #scan-preview-popup .popup-sheet { background: #1e293b; }
-        #scan-preview-popup .popup-sheet { background: #fff; }
-        #scan-preview-popup .pair-list {
-            flex: 1; overflow-y: auto;
-            padding-right: 0.25rem;
-        }
     </style>
 </head>
 
-<body class="bg-surface text-base transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
+<body class="bg-surface text-base transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans relative">
 
-    <!-- Hidden file input for backup import -->
     <input type="file" id="backup-input" class="hidden" accept=".json" onchange="importData(event)">
 
     <!-- ═══ HEADER ═══ -->
@@ -300,10 +215,8 @@
     <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0" id="main-container">
 
         <!-- ─── View: Onboarding ─── -->
-        <!-- BUGFIX: standardmäßig "hidden" Klasse hinzugefügt -->
         <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-surface z-50 hidden">
             <div class="absolute top-4 right-5 flex gap-3 items-center">
-                <!-- Accent picker on onboarding -->
                 <div class="flex gap-2 items-center">
                     <button class="accent-dot" data-accent="indigo" style="background:#6366f1" onclick="setAccent('indigo')" title="Indigo"></button>
                     <button class="accent-dot" data-accent="teal"   style="background:#14b8a6" onclick="setAccent('teal')"   title="Teal"></button>
@@ -318,7 +231,6 @@
                 <i class="fa-solid fa-brain text-white text-4xl"></i>
             </div>
 
-            <!-- Language picker: shown at the top of onboarding -->
             <div class="flex gap-3 mb-7 w-full max-w-sm">
                 <button id="lang-btn-de" class="lang-btn lang-de flex-1" onclick="setLanguage('de')">🇩🇪 Deutsch</button>
                 <button id="lang-btn-en" class="lang-btn lang-en flex-1" onclick="setLanguage('en')">🇺🇸 English</button>
@@ -351,28 +263,21 @@
 
         <!-- ─── View: Scan ─── -->
         <section id="view-scan" class="view hidden flex flex-col px-5 pt-4 pb-4 min-h-full">
-            <!-- Backup warning -->
             <div id="backup-warning" class="w-full mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-2xl p-3 text-xs flex justify-between items-center hidden">
                 <span><i class="fa-solid fa-triangle-exclamation mr-2"></i><span data-i18n="backup_warning"></span></span>
                 <button onclick="downloadData()" class="underline font-bold ml-2 whitespace-nowrap" data-i18n="backup_save"></button>
             </div>
 
-            <!-- Target deck selector -->
             <div class="mb-4">
                 <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block" data-i18n="scan_deck_label"></label>
-                <select id="scan-target-deck" class="w-full bg-card border border-subtle rounded-xl px-4 py-3 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800">
-                </select>
+                <select id="scan-target-deck" class="w-full bg-card border border-subtle rounded-xl px-4 py-3 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800"></select>
             </div>
 
-            <!-- Original für Kamera -->
             <input type="file" id="scan-file-input" class="hidden" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
-            <!-- NEU: Ohne capture="environment" für Datei-Upload -->
             <input type="file" id="scan-gallery-input" class="hidden" accept="image/*" onchange="handleImageSelected(event)">
 
             <div class="flex-1 flex flex-col justify-center items-center">
-                <div id="scan-preview-area"
-                     class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm cursor-pointer active:scale-98 transition-transform"
-                     onclick="document.getElementById('scan-file-input').click()">
+                <div id="scan-preview-area" class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm cursor-pointer active:scale-98 transition-transform" onclick="document.getElementById('scan-file-input').click()">
                     <div id="scan-placeholder" class="flex flex-col items-center">
                         <i class="fa-solid fa-camera text-5xl text-muted mb-4"></i>
                         <p class="text-sm text-muted font-medium" data-i18n="scan_placeholder_main"></p>
@@ -391,20 +296,15 @@
                 </div>
 
                 <div class="w-full flex flex-col gap-3">
-                    <!-- NEU: Aufgeteilt in Kamera und Galerie -->
                     <div class="flex gap-2 w-full">
-                        <button onclick="document.getElementById('scan-file-input').click()"
-                                class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
+                        <button onclick="document.getElementById('scan-file-input').click()" class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
                             <i class="fa-solid fa-camera"></i> <span data-i18n="scan_camera_btn"></span>
                         </button>
-                        <button onclick="document.getElementById('scan-gallery-input').click()"
-                                class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
+                        <button onclick="document.getElementById('scan-gallery-input').click()" class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
                             <i class="fa-solid fa-image"></i> <span data-i18n="scan_gallery_btn"></span>
                         </button>
                     </div>
-                    
-                    <button id="scan-btn" onclick="startAIScan()" disabled
-                            class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
+                    <button id="scan-btn" onclick="startAIScan()" disabled class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="scan_step2_btn"></span>
                     </button>
                 </div>
@@ -412,7 +312,10 @@
         </section>
 
         <!-- ─── View: Lernen / Learn ─── -->
-        <section id="view-learn" class="view hidden flex flex-col px-5 pt-3 pb-4" style="height:100%">
+        <section id="view-learn" class="view hidden flex flex-col px-5 pt-3 pb-4 relative" style="height:100%">
+            <!-- Dynamisches Banner für Learn-Modi -->
+            <div id="learn-banner" class="absolute top-16 left-1/2 transform -translate-x-1/2 bg-slate-800 dark:bg-white text-white dark:text-black px-4 py-2 rounded-full text-sm font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-50 shadow-lg text-center whitespace-nowrap"></div>
+
             <div id="learn-deck-selector" class="hidden flex flex-col items-center justify-center h-full py-8">
                 <div class="w-16 h-16 accent-bg rounded-2xl flex items-center justify-center mb-6 accent-shadow">
                     <i class="fa-solid fa-layer-group text-white text-2xl"></i>
@@ -422,25 +325,23 @@
                 <div id="learn-deck-list" class="w-full max-w-sm space-y-3"></div>
             </div>
 
-            <div id="learn-session" class="hidden flex flex-col h-full" style="position:relative">
-                <!-- Mode banner -->
-                <div id="learn-mode-banner"><i class="fa-solid fa-shuffle mr-2" id="learn-banner-icon"></i><span id="learn-banner-text"></span></div>
-                <!-- Session header with 3 mode buttons -->
+            <div id="learn-session" class="hidden flex flex-col h-full">
+                <!-- Neue Buttons für Chronologisch, Zufall und Richtung -->
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                    <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
-                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium"></span>
+                    <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm truncate max-w-[120px]">
+                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium truncate"></span>
                     </button>
                     <div class="flex items-center gap-2">
-                        <button onclick="toggleLearnDirection()" id="btn-direction" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_direction_title">
-                            <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                        <button onclick="setLearnMode('chrono')" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_chrono">
+                            <i class="fa-solid fa-arrow-down-1-9 text-sm"></i>
                         </button>
-                        <button onclick="setLearnMode('shuffle')" id="btn-shuffle" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_shuffle_title">
+                        <button onclick="setLearnMode('random')" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_random">
                             <i class="fa-solid fa-shuffle text-sm"></i>
                         </button>
-                        <button onclick="setLearnMode('chrono')" id="btn-chrono" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_chrono_title">
-                            <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                        <button onclick="toggleLearnDirection()" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_swap">
+                            <i class="fa-solid fa-arrows-rotate text-sm"></i>
                         </button>
-                        <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
+                        <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full ml-1">0 / 20</span>
                     </div>
                 </div>
 
@@ -470,8 +371,8 @@
         <!-- ─── View: Deck Detail ─── -->
         <section id="view-deck-detail" class="view hidden px-5 pt-4 pb-6 min-h-full">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="deck-detail-title" class="text-lg font-bold"></h2>
-                <span id="deck-detail-count" class="text-xs text-muted"></span>
+                <h2 id="deck-detail-title" class="text-lg font-bold truncate pr-2"></h2>
+                <span id="deck-detail-count" class="text-xs text-muted whitespace-nowrap"></span>
             </div>
             <button onclick="addManualVocab()" class="w-full border accent-border accent-text py-3 rounded-xl font-semibold mb-4 hover:accent-light transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-plus"></i> <span data-i18n="detail_add_manual"></span>
@@ -500,28 +401,7 @@
             </div>
         </section>
 
-    
-    <!-- ═══ SCAN PREVIEW POPUP ═══ -->
-    <div id="scan-preview-popup" class="hidden" onclick="closeScanPopupOnBackdrop(event)">
-        <div class="popup-sheet">
-            <div class="flex justify-between items-center mb-3 flex-shrink-0">
-                <h3 class="text-base font-bold" id="scan-popup-title" data-i18n="scan_preview_title"></h3>
-                <button onclick="closeScanPreviewPopup()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="text-xs text-muted mb-3 flex-shrink-0" id="scan-popup-subtitle" data-i18n="scan_preview_subtitle"></p>
-            <div id="scan-popup-pair-list" class="pair-list space-y-2 mb-4"></div>
-            <div class="flex gap-2 flex-shrink-0">
-                <button onclick="flipAllScanPairs()" class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition text-sm flex items-center justify-center gap-2 active:scale-95">
-                    <i class="fa-solid fa-right-left"></i> <span data-i18n="scan_preview_flip"></span>
-                </button>
-                <button onclick="confirmScanPairs()" class="flex-1 accent-bg text-white py-3 rounded-2xl font-semibold accent-shadow transition text-sm flex items-center justify-center gap-2 active:scale-95">
-                    <i class="fa-solid fa-check"></i> <span data-i18n="scan_preview_confirm"></span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-</main><!-- end main -->
+    </main>
 
     <!-- ═══ BOTTOM NAV ═══ -->
     <nav id="bottom-nav" class="hidden flex-shrink-0 bg-surface border-t border-subtle px-6 pt-0 pb-safe z-20">
@@ -560,8 +440,6 @@
                 <h3 class="text-lg font-bold" data-i18n="settings_title_modal"></h3>
                 <button onclick="closeSettingsModal()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <!-- Theme toggle -->
             <div class="flex justify-between items-center py-3 border-b border-subtle">
                 <span class="font-medium text-sm" data-i18n="settings_appearance"></span>
                 <button onclick="toggleTheme()" id="theme-toggle-btn" class="flex items-center gap-2 text-sm accent-text font-semibold">
@@ -569,8 +447,6 @@
                     <span id="theme-label"></span>
                 </button>
             </div>
-
-            <!-- Accent color -->
             <div class="py-4 border-b border-subtle">
                 <p class="font-medium text-sm mb-3" data-i18n="settings_accent"></p>
                 <div class="flex gap-4 items-center">
@@ -588,8 +464,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Language toggle -->
             <div class="flex justify-between items-center py-3 border-b border-subtle">
                 <span class="font-medium text-sm" data-i18n="settings_language"></span>
                 <div class="flex gap-2">
@@ -597,8 +471,6 @@
                     <button onclick="setLanguage('en')" id="settings-lang-en" class="lang-toggle-btn">🇺🇸 EN</button>
                 </div>
             </div>
-
-            <!-- Data actions -->
             <div class="pt-4 space-y-3">
                 <button onclick="triggerImport(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-upload accent-text"></i> <span data-i18n="settings_import"></span>
@@ -610,15 +482,30 @@
         </div>
     </div>
 
+    <!-- ═══ SCAN PREVIEW MODAL (NEU) ═══ -->
+    <div id="scan-preview-modal" class="modal-overlay hidden" style="z-index: 100;">
+        <div class="modal-sheet flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 class="text-lg font-bold" data-i18n="scan_preview_title"></h3>
+                <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-3 pb-4 hide-scrollbar" id="scan-preview-list"></div>
+            <div class="pt-4 mt-auto border-t border-subtle flex flex-col gap-3 flex-shrink-0">
+                <button onclick="swapScanPreview()" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fa-solid fa-arrows-rotate accent-text"></i> <span data-i18n="scan_preview_swap"></span>
+                </button>
+                <button onclick="confirmScanPreview()" class="w-full accent-bg accent-bg-hover text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 accent-shadow active:scale-95 transition">
+                    <i class="fa-solid fa-check"></i> <span data-i18n="scan_preview_confirm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ APP LOGIC ═══ -->
     <script>
 
-    // ══════════════════════════════════════════════
-    //  i18n – Translations Dictionary
-    // ══════════════════════════════════════════════
     const translations = {
         de: {
-            // Onboarding
             onboarding_title:    'Flashcard-AI',
             onboarding_subtitle: 'Deine Daten bleiben auf deinem Gerät. Nutze Export/Import für Backups.',
             onboarding_step1:    'Downloade die App aus der Browserleiste.',
@@ -626,27 +513,27 @@
             onboarding_step3:    'KI erstellt automatisch die richtigen Karteikarten.',
             onboarding_step4:    'Lerne effizient mit smarten Karteikarten.',
             onboarding_cta:      'Jetzt starten',
-            // Header tooltips
             import_title:        'Backup importieren',
             export_title:        'Backup exportieren',
             settings_title:      'Einstellungen',
-            // Backup warning
             backup_warning:      'Ungesicherte Vokabeln vorhanden!',
             backup_save:         'Sichern',
-            // Scan view
             scan_deck_label:     'Liste für KI-Scan auswählen',
             scan_placeholder_main: 'Foto aufnehmen oder hochladen',
             scan_placeholder_sub:  'Tippe hier',
             scan_loader_analyzing: 'KI analysiert Text…',
             scan_loader_uploading: 'Bild wird hochgeladen…',
             scan_loader_ai:        'KI analysiert Bild…',
-            scan_step1_btn:      'Schritt 1: Bild hochladen / Kamera',
             scan_camera_btn:     'Kamera',
             scan_gallery_btn:    'Galerie',
             scan_step2_btn:      'Mit KI scannen',
             scan_no_image:       'Bitte zuerst ein Bild auswählen.',
             scan_no_vocab:       'Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.',
-            // Learn view
+            // Neue i18n für Vorschau
+            scan_preview_title:  'Gefundene Vokabeln',
+            scan_preview_swap:   'Alle umkehren',
+            scan_preview_confirm:'Speichern',
+            
             learn_pick_title:    'Welche Liste lernen?',
             learn_pick_subtitle: 'Wähle eine Liste oder lerne aus allen Wortpaaren.',
             learn_repeat:        'Wiederholen',
@@ -658,32 +545,33 @@
             learn_front:         'Vorderseite',
             learn_back:          'Rückseite',
             learn_flip_hint:     'Tippen zum Drehen',
-            // Nav
+            // Neue i18n für Modus
+            learn_btn_chrono:    'Chronologisch',
+            learn_btn_random:    'Zufall',
+            learn_mode_chrono:   'Chronologischer Modus aktiviert',
+            learn_mode_random:   'Zufallsmodus aktiviert',
+            learn_mode_swap:     'Richtung gewechselt',
+
             nav_scan:  'Scannen',
             nav_learn: 'Lernen',
             nav_list:  'Listen',
             nav_goals: 'Ziele',
-            // View titles (header)
             view_title_scan:        'Scannen',
             view_title_learn:       'Lernen',
             view_title_list:        'Listen',
             view_title_deck_detail: 'Liste',
             view_title_goals:       'Fortschritt',
-            // List view
             list_new_btn: 'Neue Liste erstellen',
             list_empty:   'Noch keine Listen vorhanden.',
-            // Deck detail
             detail_add_manual: 'Manuell hinzufügen',
             detail_empty:      'Noch leer. Füge Vokabeln hinzu.',
             detail_vocab_count_singular: 'Vokabel',
             detail_vocab_count_plural:   'Vokabeln',
-            // Goals view
             goals_days:          'Tag(e)',
             goals_streak_label:  'Aktueller Streak',
             goals_daily_title:   'Tagesziel',
             goals_change:        'Ändern',
             goals_cards_learned: 'Karten gelernt',
-            // Settings modal
             settings_title_modal: 'Einstellungen',
             settings_appearance:  'Erscheinungsbild',
             settings_theme_dark:  'Dark',
@@ -692,11 +580,9 @@
             settings_language:    'Sprache',
             settings_import:      'Backup importieren',
             settings_export:      'Backup exportieren',
-            // Deck selector words suffix
             deck_words_suffix:    'Wörter',
-            // Alerts / prompts
             alert_import_success: (n) => `Erfolgreich importiert! ${n} neue Vokabeln.`,
-            alert_import_legacy:  (n, name) => `${n} Vokabeln in "${name}" importiert.`,
+            alert_import_legacy:  (n, name) => `${n} Vokabeln in "${name}" importiert und konvertiert.`,
             alert_import_unknown: 'Unbekanntes Backup-Format.',
             alert_import_error:   'Fehler beim Lesen der Datei.',
             alert_no_vocab_export:'Keine Vokabeln zum Sichern.',
@@ -710,21 +596,8 @@
             prompt_vocab_back:    'Rückseite (z.B. Deutsch):',
             prompt_vocab_front_edit: 'Vorderseite:',
             prompt_vocab_back_edit:  'Rückseite:',
-            // Learn mode buttons
-            learn_mode_direction_title: 'Richtung wechseln',
-            learn_mode_shuffle_title:   'Zufallsmodus',
-            learn_mode_chrono_title:    'Chronologischer Modus',
-            learn_banner_direction:     '↔ Richtung gewechselt',
-            learn_banner_shuffle:       '🔀 Zufallsmodus aktiviert',
-            learn_banner_chrono:        '🕐 Chronologischer Modus aktiviert',
-            // Scan preview popup
-            scan_preview_title:    'Erkannte Vokabeln prüfen',
-            scan_preview_subtitle: 'Prüfe die Paare und kehre sie ggf. um, bevor du sie speicherst.',
-            scan_preview_flip:     'Alle umkehren',
-            scan_preview_confirm:  'Zur Liste hinzufügen',
         },
         en: {
-            // Onboarding
             onboarding_title:    'Flashcard-AI',
             onboarding_subtitle: 'Your data stays on your device. Use export/import for backups.',
             onboarding_step1:    'Download the app from the browser bar.',
@@ -732,27 +605,27 @@
             onboarding_step3:    'AI automatically creates the correct flashcards.',
             onboarding_step4:    'Learn efficiently with smart flashcards.',
             onboarding_cta:      'Get Started',
-            // Header tooltips
             import_title:        'Import backup',
             export_title:        'Export backup',
             settings_title:      'Settings',
-            // Backup warning
             backup_warning:      'Unsaved vocabulary exists!',
             backup_save:         'Save',
-            // Scan view
             scan_deck_label:     'Select list for AI scan',
             scan_placeholder_main: 'Take or upload a photo',
             scan_placeholder_sub:  'Tap here',
             scan_loader_analyzing: 'AI is analyzing text…',
             scan_loader_uploading: 'Uploading image…',
             scan_loader_ai:        'AI is analyzing image…',
-            scan_step1_btn:      'Step 1: Upload image / Camera',
             scan_camera_btn:     'Camera',
             scan_gallery_btn:    'Gallery',
             scan_step2_btn:      'Scan with AI',
             scan_no_image:       'Please select an image first.',
             scan_no_vocab:       'AI found no vocabulary. Try a clearer photo.',
-            // Learn view
+            // Neue i18n
+            scan_preview_title:  'Found vocabulary',
+            scan_preview_swap:   'Swap all',
+            scan_preview_confirm:'Save',
+            
             learn_pick_title:    'Which list to study?',
             learn_pick_subtitle: 'Choose a list or study all word pairs.',
             learn_repeat:        'Repeat',
@@ -764,32 +637,33 @@
             learn_front:         'Front',
             learn_back:          'Back',
             learn_flip_hint:     'Tap to flip',
-            // Nav
+            // Neue i18n
+            learn_btn_chrono:    'Chronological',
+            learn_btn_random:    'Random',
+            learn_mode_chrono:   'Chronological mode activated',
+            learn_mode_random:   'Random mode activated',
+            learn_mode_swap:     'Direction swapped',
+
             nav_scan:  'Scan',
             nav_learn: 'Learn',
             nav_list:  'Lists',
             nav_goals: 'Goals',
-            // View titles (header)
             view_title_scan:        'Scan',
             view_title_learn:       'Learn',
             view_title_list:        'Lists',
             view_title_deck_detail: 'List',
             view_title_goals:       'Progress',
-            // List view
             list_new_btn: 'Create new list',
             list_empty:   'No lists yet.',
-            // Deck detail
             detail_add_manual: 'Add manually',
             detail_empty:      'Empty. Add vocabulary.',
             detail_vocab_count_singular: 'word',
             detail_vocab_count_plural:   'words',
-            // Goals view
             goals_days:          'day(s)',
             goals_streak_label:  'Current streak',
             goals_daily_title:   'Daily goal',
             goals_change:        'Change',
             goals_cards_learned: 'cards learned',
-            // Settings modal
             settings_title_modal: 'Settings',
             settings_appearance:  'Appearance',
             settings_theme_dark:  'Dark',
@@ -798,11 +672,9 @@
             settings_language:    'Language',
             settings_import:      'Import backup',
             settings_export:      'Export backup',
-            // Deck selector words suffix
             deck_words_suffix:    'words',
-            // Alerts / prompts
             alert_import_success: (n) => `Successfully imported! ${n} new words.`,
-            alert_import_legacy:  (n, name) => `${n} words imported into "${name}".`,
+            alert_import_legacy:  (n, name) => `${n} words imported and converted in "${name}".`,
             alert_import_unknown: 'Unknown backup format.',
             alert_import_error:   'Error reading file.',
             alert_no_vocab_export:'No vocabulary to save.',
@@ -816,61 +688,38 @@
             prompt_vocab_back:    'Back side (e.g. English):',
             prompt_vocab_front_edit: 'Front side:',
             prompt_vocab_back_edit:  'Back side:',
-            // Learn mode buttons
-            learn_mode_direction_title: 'Swap direction',
-            learn_mode_shuffle_title:   'Shuffle mode',
-            learn_mode_chrono_title:    'Chronological mode',
-            learn_banner_direction:     '↔ Direction swapped',
-            learn_banner_shuffle:       '🔀 Shuffle mode activated',
-            learn_banner_chrono:        '🕐 Chronological mode activated',
-            // Scan preview popup
-            scan_preview_title:    'Review detected vocabulary',
-            scan_preview_subtitle: 'Check the pairs and flip them if needed before saving.',
-            scan_preview_flip:     'Flip all',
-            scan_preview_confirm:  'Add to list',
         }
     };
 
-    // ── Active language (set before DOMContentLoaded) ──
     let currentLang = 'de';
 
-    /** t(key) – returns a string translation or a function for dynamic messages */
     function t(key) {
         return translations[currentLang]?.[key] ?? translations['de']?.[key] ?? key;
     }
 
-    /**
-     * setLanguage(lang)
-     */
     function setLanguage(lang) {
         if (lang !== 'de' && lang !== 'en') return;
         currentLang = lang;
         localStorage.setItem('language', lang);
         document.documentElement.lang = lang;
 
-        // Update all static [data-i18n] elements
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
             const val = t(key);
             if (typeof val === 'string') el.textContent = val;
         });
 
-        // Update title attributes for icon buttons
         document.querySelectorAll('[data-i18n-title]').forEach(el => {
             const key = el.dataset.i18nTitle;
             const val = t(key);
             if (typeof val === 'string') el.title = val;
         });
 
-        // Highlight active language buttons
         _updateLangButtons(lang);
-
-        // Re-render dynamic parts
         applyTheme();
         updateGoalUI();
         checkBackupStatus();
 
-        // Re-render views
         const activeView = document.querySelector('.view:not(.hidden)');
         if (activeView) {
             const id = activeView.id;
@@ -881,9 +730,7 @@
         }
     }
 
-    /** Visual feedback: highlight active language buttons everywhere */
     function _updateLangButtons(lang) {
-        // Onboarding buttons
         ['de', 'en'].forEach(l => {
             const btn = document.getElementById(`lang-btn-${l}`);
             if (!btn) return;
@@ -891,21 +738,17 @@
             btn.classList.toggle('lang-de', l === 'de' && l !== lang);
             btn.classList.toggle('lang-en', l === 'en' && l !== lang);
         });
-
-        // Settings buttons
         const settDe = document.getElementById('settings-lang-de');
         const settEn = document.getElementById('settings-lang-en');
         if (settDe) settDe.style.opacity = lang === 'de' ? '1' : '0.45';
         if (settEn) settEn.style.opacity = lang === 'en' ? '1' : '0.45';
     }
 
-    /** Called once at startup: detect saved/system language */
     function initLanguage() {
         const saved = localStorage.getItem('language');
         if (saved === 'de' || saved === 'en') {
             currentLang = saved;
         } else {
-            // Detect from browser
             const browserLang = navigator.language || navigator.userLanguage || '';
             currentLang = browserLang.toLowerCase().startsWith('de') ? 'de' : 'en';
         }
@@ -927,10 +770,8 @@
             const req = indexedDB.open(DB_NAME, DB_VERSION);
             req.onupgradeneeded = e => {
                 const d = e.target.result;
-                if (!d.objectStoreNames.contains(STORE_META))
-                    d.createObjectStore(STORE_META);
-                if (!d.objectStoreNames.contains(STORE_DECKS))
-                    d.createObjectStore(STORE_DECKS, { keyPath: 'id' });
+                if (!d.objectStoreNames.contains(STORE_META)) d.createObjectStore(STORE_META);
+                if (!d.objectStoreNames.contains(STORE_DECKS)) d.createObjectStore(STORE_DECKS, { keyPath: 'id' });
             };
             req.onsuccess = e => { db = e.target.result; resolve(db); };
             req.onerror   = e => reject(e.target.error);
@@ -949,9 +790,7 @@
     function dbPut(store, value, key) {
         return new Promise((resolve, reject) => {
             const tx  = db.transaction(store, 'readwrite');
-            const req = key !== undefined
-                ? tx.objectStore(store).put(value, key)
-                : tx.objectStore(store).put(value);
+            const req = key !== undefined ? tx.objectStore(store).put(value, key) : tx.objectStore(store).put(value);
             req.onsuccess = () => resolve();
             req.onerror   = e => reject(e.target.error);
         });
@@ -993,18 +832,20 @@
     let currentLearnDeck     = null;
     let currentCardIndex     = 0;
     let isCardFlipped        = false;
-    let learnDirectionReversed = false; // Speichert die Abfragerichtung
-    let learnMode = 'chrono'; // 'chrono' | 'shuffle'
+    let learnDirectionReversed = false; 
+    let learnMode            = 'chrono'; // chrono oder random
+    let remainingIndices     = [];
     let touchStartX = 0, touchEndX = 0;
-    let _scanPreviewPairs = []; // Temporäre Scan-Paare für das Vorschau-Popup
-    let _scanPreviewDeckId = null;
     let currentDetailDeckId  = null;
+
+    let pendingScanPairs = [];
+    let pendingDeckId = null;
 
     // ══════════════════════════════════════════════
     //  Init
     // ══════════════════════════════════════════════
     async function initApp() {
-        initLanguage();          // ← i18n first (before any rendered text)
+        initLanguage();
         await openDB();
         await loadState();
         await loadDecks();
@@ -1015,7 +856,6 @@
 
         const onboarded = await dbGet(STORE_META, 'onboarded');
         if (!onboarded) {
-            // Zeigt das Onboarding Screen an (entfernt die neu hinzugefügte hidden-Klasse)
             document.getElementById('view-onboarding').classList.remove('hidden');
             updateAccentDots();
         } else {
@@ -1025,9 +865,6 @@
         }
     }
 
-    // ══════════════════════════════════════════════
-    //  Persistence
-    // ══════════════════════════════════════════════
     async function loadState() {
         const saved = await dbGet(STORE_META, 'appState');
         if (saved) appState = { ...appState, ...saved };
@@ -1042,11 +879,24 @@
     async function loadDecks() {
         decks = await dbGetAll(STORE_DECKS);
         decks.sort((a, b) => a.id - b.id);
+        
+        // MIGRATION: en/de -> front/back auto konvertieren
+        let needsSave = false;
+        decks.forEach(deck => {
+            deck.words.forEach(w => {
+                if (w.en !== undefined) { w.front = w.en; delete w.en; needsSave = true; }
+                if (w.de !== undefined) { w.back = w.de; delete w.de; needsSave = true; }
+            });
+        });
+
         if (decks.length === 0) {
             const defName = currentLang === 'de' ? 'Standard-Liste' : 'Default List';
             const def = { id: Date.now(), name: defName, words: [] };
             await dbPut(STORE_DECKS, def);
             decks = [def];
+        } else if (needsSave) {
+            // Alle konvertierten Listen speichern
+            for (const deck of decks) { await dbPut(STORE_DECKS, deck); }
         }
     }
 
@@ -1061,13 +911,8 @@
         decks = decks.filter(d => d.id !== deckId);
     }
 
-    function totalWordCount() {
-        return decks.reduce((s, d) => s + d.words.length, 0);
-    }
+    function totalWordCount() { return decks.reduce((s, d) => s + d.words.length, 0); }
 
-    // ══════════════════════════════════════════════
-    //  Theme & Accent
-    // ══════════════════════════════════════════════
     function toggleTheme() {
         appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
         applyTheme();
@@ -1075,10 +920,10 @@
     }
 
     function applyTheme() {
-        const html   = document.documentElement;
-        const icon   = document.getElementById('theme-icon');
+        const html = document.documentElement;
+        const icon = document.getElementById('theme-icon');
         const iconOb = document.getElementById('theme-icon-onboarding');
-        const label  = document.getElementById('theme-label');
+        const label = document.getElementById('theme-label');
 
         if (appState.theme === 'dark') {
             html.classList.add('dark');
@@ -1100,9 +945,7 @@
         saveState();
     }
 
-    function applyAccent() {
-        document.documentElement.dataset.accent = appState.accent || 'indigo';
-    }
+    function applyAccent() { document.documentElement.dataset.accent = appState.accent || 'indigo'; }
 
     function updateAccentDots() {
         document.querySelectorAll('.accent-dot').forEach(btn => {
@@ -1110,25 +953,15 @@
         });
     }
 
-    // ══════════════════════════════════════════════
-    //  Settings Modal
-    // ══════════════════════════════════════════════
     function openSettingsModal() {
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
         applyTheme();
         _updateLangButtons(currentLang);
     }
-    function closeSettingsModal() {
-        document.getElementById('settings-modal').classList.add('hidden');
-    }
-    function closeSettingsOnBackdrop(e) {
-        if (e.target === document.getElementById('settings-modal')) closeSettingsModal();
-    }
+    function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
+    function closeSettingsOnBackdrop(e) { if (e.target === document.getElementById('settings-modal')) closeSettingsModal(); }
 
-    // ══════════════════════════════════════════════
-    //  Onboarding
-    // ══════════════════════════════════════════════
     function showMainUI() {
         document.getElementById('view-onboarding').classList.add('hidden');
         document.getElementById('main-header').classList.remove('hidden');
@@ -1141,9 +974,6 @@
         switchView('scan');
     }
 
-    // ══════════════════════════════════════════════
-    //  Navigation
-    // ══════════════════════════════════════════════
     function switchView(viewName) {
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
@@ -1163,9 +993,7 @@
             'goals':       'view_title_goals'
         };
         document.getElementById('header-title').textContent = t(titleKeys[viewName] || 'view_title_scan');
-
-        const backBtn = document.getElementById('header-back-btn');
-        backBtn.classList.toggle('hidden', viewName !== 'deck-detail');
+        document.getElementById('header-back-btn').classList.toggle('hidden', viewName !== 'deck-detail');
 
         if (viewName === 'list')        renderDeckOverview();
         if (viewName === 'goals')       updateGoalUI();
@@ -1176,18 +1004,9 @@
 
     function handleBackBtn() { switchView('list'); }
 
-    // ══════════════════════════════════════════════
-    //  Backup
-    // ══════════════════════════════════════════════
     function triggerImport() { document.getElementById('backup-input').click(); }
 
-    /** Convert legacy {en,de} word objects to the current {front,back} schema */
-    function migrateWord(w) {
-        if (w.front !== undefined || w.back !== undefined) return w; // already new schema
-        return { id: w.id || (Date.now() + Math.random()), front: w.en || '', back: w.de || '' };
-    }
-
-        function importData(event) {
+    function importData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -1197,8 +1016,12 @@
                 if (Array.isArray(data) && data.length > 0 && data[0].words !== undefined) {
                     let imported = 0;
                     for (const deck of data) {
-                        // Migrate legacy word schema {en/de} → {front/back}
-                        deck.words = (deck.words || []).map(w => migrateWord(w));
+                        // Dynamisch auf front/back konvertieren
+                        deck.words = deck.words.map(w => ({
+                            id: w.id || Date.now() + Math.random(),
+                            front: w.front || w.en || '',
+                            back: w.back || w.de || ''
+                        }));
                         const existing = decks.find(d => d.id === deck.id);
                         if (!existing) { await saveDeck(deck); imported += deck.words.length; }
                     }
@@ -1206,11 +1029,17 @@
                     await saveState();
                     alert(t('alert_import_success')(imported));
                 } else if (Array.isArray(data) && (data[0]?.en || data[0]?.front)) {
+                    // Legacy import Format Fallback
                     const target = decks[0];
-                    const existingWords = new Set(target.words.map(w => (w.front||'').toLowerCase()));
+                    const existingWords = new Set(target.words.map(w => (w.front).toLowerCase()));
                     const newWords = data
-                        .map(w => migrateWord(w))
-                        .filter(w => w.front && w.back && !existingWords.has(w.front.toLowerCase()));
+                        .filter(w => (w.front && w.back) || (w.en && w.de))
+                        .map(w => ({
+                            id: Date.now() + Math.random(),
+                            front: w.front || w.en,
+                            back: w.back || w.de
+                        }))
+                        .filter(w => !existingWords.has(w.front.toLowerCase()));
                     target.words = [...newWords, ...target.words];
                     await saveDeck(target);
                     appState.lastBackupWordCount = totalWordCount();
@@ -1248,14 +1077,11 @@
         box.classList.toggle('hidden', diff <= 10);
     }
 
-    // ══════════════════════════════════════════════
-    //  Scan View
-    // ══════════════════════════════════════════════
     function populateScanDeckSelector() {
         const sel = document.getElementById('scan-target-deck');
         if (!sel) return;
         sel.innerHTML = decks.map(d =>
-            `<option value="${d.id}">${d.name} (${d.words.length} ${t('deck_words_suffix')})</option>`
+            `<option value="${d.id}">${escapeHtml(d.name)} (${d.words.length} ${t('deck_words_suffix')})</option>`
         ).join('');
     }
 
@@ -1295,7 +1121,7 @@
         const text = document.getElementById('scan-error-text');
         if (!box || !text) return;
         if (msg) { text.textContent = msg; box.classList.remove('hidden'); }
-        else      { box.classList.add('hidden'); text.textContent = ''; }
+        else     { box.classList.add('hidden'); text.textContent = ''; }
     }
 
     async function startAIScan() {
@@ -1325,36 +1151,26 @@
             const pairs = data.pairs;
             if (!Array.isArray(pairs) || pairs.length === 0) throw new Error(t('scan_no_vocab'));
 
-            const sel    = document.getElementById('scan-target-deck');
-            const deckId = sel ? parseInt(sel.value) : (decks.length > 0 ? decks[0].id : null);
-            let deck   = decks.find(d => d.id === deckId);
+            const sel = document.getElementById('scan-target-deck');
+            pendingDeckId = sel ? parseInt(sel.value) : (decks.length > 0 ? decks[0].id : null);
 
-            // NEU: Bugfix: Wenn alle Listen gelöscht wurden, erstelle hier direkt eine neue Standard-Liste.
-            if (!deck) {
-                deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
-            }
-
-            const newPairs = pairs.map((p, i) => ({
+            pendingScanPairs = pairs.map((p, i) => ({
                 id: Date.now() + i,
-                front: (p.front || '').trim(),
-                back:  (p.back  || '').trim(),
+                front: (p.front || p.en || '').trim(),
+                back:  (p.back || p.de || '').trim(),
             })).filter(w => w.front && w.back);
 
             loader.classList.add('hidden');
-
-            if (newPairs.length === 0) throw new Error(t('scan_no_vocab'));
-
-            // Show preview popup
-            _scanPreviewPairs  = newPairs;
-            _scanPreviewDeckId = deck.id;
-            openScanPreviewPopup();
-
             _scanImageBase64 = null;
             const previewImg  = document.getElementById('scan-preview-img');
             const placeholder = document.getElementById('scan-placeholder');
             if (previewImg)  { previewImg.src = ''; previewImg.classList.add('hidden'); }
             if (placeholder) { placeholder.classList.remove('hidden'); }
             scanBtn.disabled = true;
+
+            // Vorschau-Modul aufrufen anstatt direkt zu speichern
+            renderScanPreview();
+            document.getElementById('scan-preview-modal').classList.remove('hidden');
 
         } catch (err) {
             console.error('AI scan error:', err);
@@ -1364,69 +1180,50 @@
         }
     }
 
-    // ══════════════════════════════════════════════
-    //  Scan Preview Popup
-    // ══════════════════════════════════════════════
-    function openScanPreviewPopup() {
-        const popup = document.getElementById('scan-preview-popup');
-        if (!popup) return;
-        renderScanPopupPairs();
-        // Apply i18n to popup static elements
-        document.querySelectorAll('#scan-preview-popup [data-i18n]').forEach(el => {
-            const key = el.dataset.i18n;
-            const val = t(key);
-            if (typeof val === 'string') el.textContent = val;
-        });
-        popup.classList.remove('hidden');
-    }
-
-    function renderScanPopupPairs() {
-        const list = document.getElementById('scan-popup-pair-list');
-        if (!list) return;
+    // ── Vorschau Modal Funktionen ──
+    function renderScanPreview() {
+        const list = document.getElementById('scan-preview-list');
         list.innerHTML = '';
-        _scanPreviewPairs.forEach((pair, idx) => {
-            const row = document.createElement('div');
-            row.className = 'bg-card border border-subtle rounded-xl p-3 flex items-center gap-3';
-            row.innerHTML = `
-                <span class="text-xs font-bold text-muted w-5 text-right flex-shrink-0">${idx + 1}</span>
-                <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-sm truncate">${escapeHtml(pair.front)}</p>
-                    <p class="text-muted text-xs mt-0.5 truncate">${escapeHtml(pair.back)}</p>
+        pendingScanPairs.forEach(p => {
+            list.innerHTML += `
+                <div class="bg-card p-3 rounded-2xl border border-subtle">
+                    <p class="font-bold text-sm mb-1">${escapeHtml(p.front)}</p>
+                    <p class="text-muted text-sm">${escapeHtml(p.back)}</p>
                 </div>
             `;
-            list.appendChild(row);
         });
     }
 
-    function flipAllScanPairs() {
-        _scanPreviewPairs = _scanPreviewPairs.map(p => ({ id: p.id, front: p.back, back: p.front }));
-        renderScanPopupPairs();
+    function swapScanPreview() {
+        pendingScanPairs.forEach(p => {
+            const temp = p.front;
+            p.front = p.back;
+            p.back = temp;
+        });
+        renderScanPreview();
     }
 
-    async function confirmScanPairs() {
-        const deck = decks.find(d => d.id === _scanPreviewDeckId) || decks[0];
-        if (!deck) return;
-        deck.words = [...deck.words, ..._scanPreviewPairs];
+    function closeScanPreview() {
+        document.getElementById('scan-preview-modal').classList.add('hidden');
+        pendingScanPairs = [];
+    }
+
+    async function confirmScanPreview() {
+        let deck = decks.find(d => d.id === pendingDeckId);
+        if (!deck) {
+            deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
+        }
+        deck.words = [...deck.words, ...pendingScanPairs];
         await saveDeck(deck);
         await saveState();
-        closeScanPreviewPopup();
+
+        closeScanPreview();
         currentDetailDeckId = deck.id;
         switchView('deck-detail');
     }
 
-    function closeScanPreviewPopup() {
-        const popup = document.getElementById('scan-preview-popup');
-        if (popup) popup.classList.add('hidden');
-        _scanPreviewPairs  = [];
-        _scanPreviewDeckId = null;
-    }
-
-    function closeScanPopupOnBackdrop(e) {
-        if (e.target === document.getElementById('scan-preview-popup')) closeScanPreviewPopup();
-    }
-
-        // ══════════════════════════════════════════════
-    //  List View – Deck Overview
+    // ══════════════════════════════════════════════
+    //  List View
     // ══════════════════════════════════════════════
     function renderDeckOverview() {
         const container = document.getElementById('deck-overview');
@@ -1439,9 +1236,7 @@
         }
 
         decks.forEach(deck => {
-            const wSuffix = deck.words.length === 1
-                ? t('detail_vocab_count_singular')
-                : t('detail_vocab_count_plural');
+            const wSuffix = deck.words.length === 1 ? t('detail_vocab_count_singular') : t('detail_vocab_count_plural');
             const item = document.createElement('div');
             item.className = 'deck-item bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center cursor-pointer';
             item.innerHTML = `
@@ -1450,15 +1245,9 @@
                     <p class="text-muted text-xs mt-1">${deck.words.length} ${wSuffix}</p>
                 </div>
                 <div class="flex gap-3 items-center ml-3 flex-shrink-0">
-                    <button onclick="event.stopPropagation(); openDeckDetail(${deck.id})" class="accent-text text-sm">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                    <button onclick="event.stopPropagation(); renameDeck(${deck.id})" class="text-muted hover:accent-text transition text-sm">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button onclick="event.stopPropagation(); confirmDeleteDeck(${deck.id})" class="text-muted hover:text-red-500 transition text-sm">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                    <button onclick="event.stopPropagation(); openDeckDetail(${deck.id})" class="accent-text text-sm"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button onclick="event.stopPropagation(); renameDeck(${deck.id})" class="text-muted hover:accent-text transition text-sm"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="event.stopPropagation(); confirmDeleteDeck(${deck.id})" class="text-muted hover:text-red-500 transition text-sm"><i class="fa-solid fa-trash"></i></button>
                 </div>
             `;
             container.appendChild(item);
@@ -1488,8 +1277,6 @@
     async function confirmDeleteDeck(deckId) {
         const deck = decks.find(d => d.id === deckId);
         if (!deck) return;
-        // BUGFIX: Entfernt, das Löschen der letzten Liste war hier blockiert.
-        // if (decks.length === 1) { alert(t('alert_last_deck')); return; } 
         if (!confirm(t('confirm_delete_deck')(deck.name, deck.words.length))) return;
         await deleteDeck(deckId);
         renderDeckOverview();
@@ -1508,9 +1295,7 @@
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) { switchView('list'); return; }
 
-        const wSuffix = deck.words.length === 1
-            ? t('detail_vocab_count_singular')
-            : t('detail_vocab_count_plural');
+        const wSuffix = deck.words.length === 1 ? t('detail_vocab_count_singular') : t('detail_vocab_count_plural');
         document.getElementById('deck-detail-title').textContent = deck.name;
         document.getElementById('deck-detail-count').textContent = `${deck.words.length} ${wSuffix}`;
 
@@ -1527,8 +1312,8 @@
             item.className = 'bg-card p-4 rounded-2xl border border-subtle flex justify-between items-center';
             item.innerHTML = `
                 <div class="min-w-0 flex-1">
-                    <p class="font-bold">${escapeHtml(w.front)}</p>
-                    <p class="text-muted text-sm mt-0.5">${escapeHtml(w.back)}</p>
+                    <p class="font-bold break-words">${escapeHtml(w.front)}</p>
+                    <p class="text-muted text-sm mt-0.5 break-words">${escapeHtml(w.back)}</p>
                 </div>
                 <div class="flex gap-3 ml-3 flex-shrink-0">
                     <button onclick="editVocab(${idx})" class="text-muted hover:accent-text transition"><i class="fa-solid fa-pen text-sm"></i></button>
@@ -1542,11 +1327,11 @@
     async function addManualVocab() {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
-        const en = prompt(t('prompt_vocab_front'));
-        if (!en) return;
-        const de = prompt(t('prompt_vocab_back'));
-        if (!de) return;
-        deck.words.unshift({ id: Date.now(), front: en.trim(), back: de.trim() });
+        const front = prompt(t('prompt_vocab_front'));
+        if (!front) return;
+        const back = prompt(t('prompt_vocab_back'));
+        if (!back) return;
+        deck.words.unshift({ id: Date.now(), front: front.trim(), back: back.trim() });
         await saveDeck(deck);
         renderDeckDetail();
     }
@@ -1554,12 +1339,12 @@
     async function editVocab(idx) {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
-        const w  = deck.words[idx];
-        const en = prompt(t('prompt_vocab_front_edit'), w.front);
-        if (en === null) return;
-        const de = prompt(t('prompt_vocab_back_edit'), w.back);
-        if (de === null) return;
-        deck.words[idx] = { ...w, front: en.trim(), back: de.trim() };
+        const w = deck.words[idx];
+        const front = prompt(t('prompt_vocab_front_edit'), w.front);
+        if (front === null) return;
+        const back = prompt(t('prompt_vocab_back_edit'), w.back);
+        if (back === null) return;
+        deck.words[idx] = { ...w, front: front.trim(), back: back.trim() };
         await saveDeck(deck);
         renderDeckDetail();
     }
@@ -1576,18 +1361,60 @@
     // ══════════════════════════════════════════════
     //  Learn View
     // ══════════════════════════════════════════════
+    function showLearnBanner(msgKey) {
+        const banner = document.getElementById('learn-banner');
+        if (!banner) return;
+        banner.textContent = t(msgKey);
+        banner.style.opacity = '1';
+        setTimeout(() => { banner.style.opacity = '0'; }, 1200);
+    }
+
+    function setLearnMode(mode) {
+        learnMode = mode;
+        if (mode === 'random') {
+            showLearnBanner('learn_mode_random');
+            initRemainingIndices();
+        } else {
+            showLearnBanner('learn_mode_chrono');
+        }
+    }
+
+    function initRemainingIndices() {
+        const words = window._learnWords || [];
+        remainingIndices = Array.from({length: words.length}, (_, i) => i);
+        // aktuellen Index kurz entfernen, falls nicht letzte Karte
+        if(words.length > 1) {
+            remainingIndices = remainingIndices.filter(i => i !== currentCardIndex);
+        }
+        if (remainingIndices.length === 0 && words.length > 0) {
+            remainingIndices = Array.from({length: words.length}, (_, i) => i);
+        }
+    }
+
+    function toggleLearnDirection() {
+        learnDirectionReversed = !learnDirectionReversed;
+        isCardFlipped = false;
+        showLearnBanner('learn_mode_swap');
+        renderFlashcard();
+    }
+
+    function getDynamicTextSize(text) {
+        if (!text) return 'text-4xl';
+        const len = text.length;
+        if (len < 20) return 'text-4xl';
+        if (len < 50) return 'text-3xl';
+        if (len < 100) return 'text-2xl';
+        if (len < 150) return 'text-xl';
+        return 'text-lg';
+    }
+
     function initLearnView() {
         const selector = document.getElementById('learn-deck-selector');
         const session  = document.getElementById('learn-session');
-
         const decksWithWords = decks.filter(d => d.words.length > 0);
-        if (
-            decksWithWords.length === 1 ||
-            (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))
-        ) {
-            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))
-                ? appState.lastLearnDeckId
-                : decksWithWords[0]?.id;
+
+        if (decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) {
+            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0)) ? appState.lastLearnDeckId : decksWithWords[0]?.id;
             if (autoId) { startLearnSession(autoId); return; }
         }
 
@@ -1614,7 +1441,7 @@
         decksWithWords.forEach(d => {
             const btn = document.createElement('button');
             btn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center text-sm';
-            btn.innerHTML = `<span class="font-semibold">${escapeHtml(d.name)}</span><span class="text-muted">${d.words.length} ${t('learn_words_suffix')} <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>`;
+            btn.innerHTML = `<span class="font-semibold truncate pr-2">${escapeHtml(d.name)}</span><span class="text-muted whitespace-nowrap">${d.words.length} ${t('learn_words_suffix')} <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>`;
             btn.onclick = () => startLearnSession(d.id);
             list.appendChild(btn);
         });
@@ -1622,7 +1449,6 @@
 
     async function startLearnSession(deckIdOrAll) {
         let words = [], label = '';
-
         if (deckIdOrAll === 'all') {
             words = decks.flatMap(d => d.words);
             label = t('learn_all_lists');
@@ -1644,6 +1470,7 @@
         currentCardIndex = 0;
         isCardFlipped    = false;
         window._learnWords = words;
+        if(learnMode === 'random') initRemainingIndices();
         updateLearnCounter();
         renderFlashcard();
     }
@@ -1661,65 +1488,7 @@
         if (el) el.textContent = `${appState.learnedToday} / ${appState.dailyGoal}`;
     }
 
-    // NEU: Logik für den Richtungswechsel
-    function toggleLearnDirection() {
-        learnDirectionReversed = !learnDirectionReversed;
-        isCardFlipped = false;
-        showLearnBanner(t('learn_banner_direction'), 'fa-arrows-rotate');
-        renderFlashcard();
-    }
-
-    /** getDynamicTextSize(text) → CSS font-size string based on text length */
-    function getDynamicTextSize(text) {
-        const len = (text || '').length;
-        if (len <= 15)  return '2.2rem';
-        if (len <= 30)  return '1.75rem';
-        if (len <= 60)  return '1.35rem';
-        if (len <= 100) return '1.1rem';
-        if (len <= 180) return '0.95rem';
-        return '0.82rem';
-    }
-
-    /** setLearnMode: 'shuffle' | 'chrono' */
-    function setLearnMode(mode) {
-        learnMode = mode;
-        // shuffle: randomise remaining words
-        if (mode === 'shuffle') {
-            const words = window._learnWords || [];
-            for (let i = words.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [words[i], words[j]] = [words[j], words[i]];
-            }
-            window._learnWords = words;
-        } else {
-            // chrono: restore original deck order
-            const words = window._learnWords || [];
-            words.sort((a, b) => (a.id || 0) - (b.id || 0));
-            window._learnWords = words;
-        }
-        currentCardIndex = 0;
-        isCardFlipped = false;
-        showLearnBanner(mode === 'shuffle' ? t('learn_banner_shuffle') : t('learn_banner_chrono'), mode === 'shuffle' ? 'fa-shuffle' : 'fa-clock-rotate-left');
-        renderFlashcard();
-        // Highlight active mode button
-        ['shuffle', 'chrono'].forEach(m => {
-            const btn = document.getElementById(`btn-${m}`);
-            if (btn) btn.classList.toggle('accent-text', m === mode);
-        });
-    }
-
-    function showLearnBanner(text, icon) {
-        const banner = document.getElementById('learn-mode-banner');
-        const bannerText = document.getElementById('learn-banner-text');
-        const bannerIcon = document.getElementById('learn-banner-icon');
-        if (!banner) return;
-        bannerText.textContent = text;
-        if (bannerIcon) bannerIcon.className = `fa-solid ${icon} mr-2`;
-        banner.classList.add('visible');
-        setTimeout(() => banner.classList.remove('visible'), 1200);
-    }
-
-        function renderFlashcard() {
+    function renderFlashcard() {
         const container  = document.getElementById('flashcard-container');
         const actionBtns = document.getElementById('learn-actions');
         if (!container) return;
@@ -1736,10 +1505,8 @@
         }
 
         const word = words[currentCardIndex];
-
-        // Anwendung des Richtungswechsels (front/back schema)
-        const frontText = learnDirectionReversed ? (word.back || word.de || '') : (word.front || word.en || '');
-        const backText  = learnDirectionReversed ? (word.front || word.en || '') : (word.back || word.de || '');
+        const frontText = learnDirectionReversed ? word.back : word.front;
+        const backText  = learnDirectionReversed ? word.front : word.back;
         const frontLabel = learnDirectionReversed ? t('learn_back') : t('learn_front');
         const backLabel  = learnDirectionReversed ? t('learn_front') : t('learn_back');
 
@@ -1748,24 +1515,24 @@
 
         container.innerHTML = `
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
-                <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center overflow-hidden">
+                <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center">
                     <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
-                    <div class="card-face-content mt-4">
-                        <h2 class="font-bold leading-snug" style="font-size:${frontSize}">${escapeHtml(frontText)}</h2>
-                        <p class="mt-5 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
+                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center">
+                        <h2 class="${frontSize} font-bold whitespace-pre-wrap">${escapeHtml(frontText)}</h2>
                     </div>
+                    <p class="absolute bottom-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
-                <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white overflow-hidden">
+                <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white">
                     <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
-                    <div class="card-face-content mt-4">
-                        <h2 class="font-bold leading-snug" style="font-size:${backSize}">${escapeHtml(backText)}</h2>
+                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center">
+                        <h2 class="${backSize} font-bold whitespace-pre-wrap">${escapeHtml(backText)}</h2>
                     </div>
                 </div>
             </div>`;
 
         const card = document.getElementById('flashcard');
-        card.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
-        card.addEventListener('touchend',   e => { touchEndX   = e.changedTouches[0].screenX; handleSwipe(); }, false);
+        card.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive:true});
+        card.addEventListener('touchend',   e => { touchEndX   = e.changedTouches[0].screenX; handleSwipe(); }, {passive:true});
 
         isCardFlipped = false;
         if (actionBtns) { actionBtns.style.opacity='0'; actionBtns.style.pointerEvents='none'; }
@@ -1796,12 +1563,13 @@
         const card = document.getElementById('flashcard');
         if (!card) return;
         card.classList.add(dir === 'left' ? 'swipe-left' : 'swipe-right');
+        
         setTimeout(() => {
-            if (learnMode === 'shuffle') {
-                // Pick a random index different from current
-                let next;
-                do { next = Math.floor(Math.random() * words.length); } while (next === currentCardIndex && words.length > 1);
-                currentCardIndex = next;
+            if (learnMode === 'random') {
+                if (remainingIndices.length === 0) initRemainingIndices();
+                const randIdx = Math.floor(Math.random() * remainingIndices.length);
+                currentCardIndex = remainingIndices[randIdx];
+                remainingIndices.splice(randIdx, 1);
             } else {
                 currentCardIndex = dir === 'left'
                     ? (currentCardIndex + 1) % words.length
@@ -1847,7 +1615,7 @@
 
     function setDailyGoal() {
         const v = prompt(t('prompt_daily_goal'), appState.dailyGoal);
-        if (v && !isNaN(v)) { appState.dailyGoal = parseInt(v, 10); saveState(); }
+        if (v && !isNaN(v)) { appState.dailyGoal = parseInt(v, 10); saveState(); updateGoalUI(); }
     }
 
     function updateGoalUI() {
@@ -1859,18 +1627,10 @@
         if (el3) el3.style.width = `${Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100)}%`;
     }
 
-    // ══════════════════════════════════════════════
-    //  Utilities
-    // ══════════════════════════════════════════════
     function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // ══════════════════════════════════════════════
-    //  Boot
-    // ══════════════════════════════════════════════
     document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
