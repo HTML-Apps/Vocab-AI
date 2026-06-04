@@ -241,7 +241,8 @@
     <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0" id="main-container">
 
         <!-- ─── View: Onboarding ─── -->
-        <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-surface z-50">
+        <!-- BUGFIX: standardmäßig "hidden" Klasse hinzugefügt -->
+        <section id="view-onboarding" class="absolute inset-0 flex flex-col justify-center items-center p-8 bg-surface z-50 hidden">
             <div class="absolute top-4 right-5 flex gap-3 items-center">
                 <!-- Accent picker on onboarding -->
                 <div class="flex gap-2 items-center">
@@ -304,9 +305,10 @@
                 </select>
             </div>
 
-            <input type="file" id="scan-file-input" class="hidden"
-                   accept="image/*" capture="environment"
-                   onchange="handleImageSelected(event)">
+            <!-- Original für Kamera -->
+            <input type="file" id="scan-file-input" class="hidden" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
+            <!-- NEU: Ohne capture="environment" für Datei-Upload -->
+            <input type="file" id="scan-gallery-input" class="hidden" accept="image/*" onchange="handleImageSelected(event)">
 
             <div class="flex-1 flex flex-col justify-center items-center">
                 <div id="scan-preview-area"
@@ -317,8 +319,7 @@
                         <p class="text-sm text-muted font-medium" data-i18n="scan_placeholder_main"></p>
                         <p class="text-xs text-muted mt-1 opacity-60" data-i18n="scan_placeholder_sub"></p>
                     </div>
-                    <img id="scan-preview-img" src="" alt="Preview"
-                         class="hidden absolute inset-0 w-full h-full object-contain rounded-3xl">
+                    <img id="scan-preview-img" src="" alt="Preview" class="hidden absolute inset-0 w-full h-full object-contain rounded-3xl">
                     <div id="scan-loader" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center hidden backdrop-blur-sm rounded-3xl">
                         <i class="fa-solid fa-circle-notch fa-spin accent-text text-4xl mb-4"></i>
                         <p class="text-sm font-medium animate-pulse" id="scan-loader-text" data-i18n="scan_loader_analyzing"></p>
@@ -331,10 +332,18 @@
                 </div>
 
                 <div class="w-full flex flex-col gap-3">
-                    <button onclick="document.getElementById('scan-file-input').click()"
-                            class="w-full border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95">
-                        <i class="fa-solid fa-image"></i> <span data-i18n="scan_step1_btn"></span>
-                    </button>
+                    <!-- NEU: Aufgeteilt in Kamera und Galerie -->
+                    <div class="flex gap-2 w-full">
+                        <button onclick="document.getElementById('scan-file-input').click()"
+                                class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
+                            <i class="fa-solid fa-camera"></i> <span data-i18n="scan_camera_btn"></span>
+                        </button>
+                        <button onclick="document.getElementById('scan-gallery-input').click()"
+                                class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95 text-sm">
+                            <i class="fa-solid fa-image"></i> <span data-i18n="scan_gallery_btn"></span>
+                        </button>
+                    </div>
+                    
                     <button id="scan-btn" onclick="startAIScan()" disabled
                             class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="scan_step2_btn"></span>
@@ -355,11 +364,17 @@
             </div>
 
             <div id="learn-session" class="hidden flex flex-col h-full">
+                <!-- NEU: Richtungswechsel-Button hinzugefügt -->
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
                         <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium"></span>
                     </button>
-                    <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleLearnDirection()" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" title="Richtung wechseln">
+                            <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                        </button>
+                        <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
+                    </div>
                 </div>
 
                 <div id="flashcard-wrapper">
@@ -538,6 +553,8 @@
             scan_loader_uploading: 'Bild wird hochgeladen…',
             scan_loader_ai:        'KI analysiert Bild…',
             scan_step1_btn:      'Schritt 1: Bild hochladen / Kamera',
+            scan_camera_btn:     'Kamera',
+            scan_gallery_btn:    'Galerie',
             scan_step2_btn:      'Schritt 2: Mit KI scannen',
             scan_no_image:       'Bitte zuerst ein Bild auswählen.',
             scan_no_vocab:       'Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.',
@@ -630,6 +647,8 @@
             scan_loader_uploading: 'Uploading image…',
             scan_loader_ai:        'AI is analyzing image…',
             scan_step1_btn:      'Step 1: Upload image / Camera',
+            scan_camera_btn:     'Camera',
+            scan_gallery_btn:    'Gallery',
             scan_step2_btn:      'Step 2: Scan with AI',
             scan_no_image:       'Please select an image first.',
             scan_no_vocab:       'AI found no vocabulary. Try a clearer photo.',
@@ -710,11 +729,6 @@
 
     /**
      * setLanguage(lang)
-     * 1. Stores the choice in localStorage
-     * 2. Updates all [data-i18n] elements in the DOM
-     * 3. Updates all [data-i18n-title] elements (title attributes)
-     * 4. Sets the <html lang="…"> attribute
-     * 5. Refreshes dynamic UI that was rendered with hardcoded strings
      */
     function setLanguage(lang) {
         if (lang !== 'de' && lang !== 'en') return;
@@ -739,12 +753,12 @@
         // Highlight active language buttons
         _updateLangButtons(lang);
 
-        // Re-render dynamic parts that contain translated strings
-        applyTheme();          // re-renders theme label
-        updateGoalUI();        // re-renders "X / Y Karten gelernt"
+        // Re-render dynamic parts
+        applyTheme();
+        updateGoalUI();
         checkBackupStatus();
 
-        // Re-render views that inject translated strings dynamically
+        // Re-render views
         const activeView = document.querySelector('.view:not(.hidden)');
         if (activeView) {
             const id = activeView.id;
@@ -867,6 +881,7 @@
     let currentLearnDeck     = null;
     let currentCardIndex     = 0;
     let isCardFlipped        = false;
+    let learnDirectionReversed = false; // NEU: Speichert die Abfragerichtung
     let touchStartX = 0, touchEndX = 0;
     let currentDetailDeckId  = null;
 
@@ -885,6 +900,7 @@
 
         const onboarded = await dbGet(STORE_META, 'onboarded');
         if (!onboarded) {
+            // Zeigt das Onboarding Screen an (entfernt die neu hinzugefügte hidden-Klasse)
             document.getElementById('view-onboarding').classList.remove('hidden');
             updateAccentDots();
         } else {
@@ -1187,8 +1203,13 @@
             if (!Array.isArray(pairs) || pairs.length === 0) throw new Error(t('scan_no_vocab'));
 
             const sel    = document.getElementById('scan-target-deck');
-            const deckId = sel ? parseInt(sel.value) : decks[0].id;
-            const deck   = decks.find(d => d.id === deckId) || decks[0];
+            const deckId = sel ? parseInt(sel.value) : (decks.length > 0 ? decks[0].id : null);
+            let deck   = decks.find(d => d.id === deckId);
+
+            // NEU: Bugfix: Wenn alle Listen gelöscht wurden, erstelle hier direkt eine neue Standard-Liste.
+            if (!deck) {
+                deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
+            }
 
             const newWords = pairs.map((p, i) => ({
                 id: Date.now() + i,
@@ -1282,7 +1303,8 @@
     async function confirmDeleteDeck(deckId) {
         const deck = decks.find(d => d.id === deckId);
         if (!deck) return;
-        if (decks.length === 1) { alert(t('alert_last_deck')); return; }
+        // BUGFIX: Entfernt, das Löschen der letzten Liste war hier blockiert.
+        // if (decks.length === 1) { alert(t('alert_last_deck')); return; } 
         if (!confirm(t('confirm_delete_deck')(deck.name, deck.words.length))) return;
         await deleteDeck(deckId);
         renderDeckOverview();
@@ -1454,6 +1476,13 @@
         if (el) el.textContent = `${appState.learnedToday} / ${appState.dailyGoal}`;
     }
 
+    // NEU: Logik für den Richtungswechsel
+    function toggleLearnDirection() {
+        learnDirectionReversed = !learnDirectionReversed;
+        isCardFlipped = false;
+        renderFlashcard();
+    }
+
     function renderFlashcard() {
         const container  = document.getElementById('flashcard-container');
         const actionBtns = document.getElementById('learn-actions');
@@ -1471,16 +1500,23 @@
         }
 
         const word = words[currentCardIndex];
+
+        // NEU: Anwendung des Richtungswechsels
+        const frontText = learnDirectionReversed ? word.de : word.en;
+        const backText  = learnDirectionReversed ? word.en : word.de;
+        const frontLabel = learnDirectionReversed ? t('learn_back') : t('learn_front');
+        const backLabel  = learnDirectionReversed ? t('learn_front') : t('learn_back');
+
         container.innerHTML = `
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
                 <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-8 text-center">
-                    <span class="absolute top-4 left-4 text-xs font-bold text-muted">${t('learn_front')}</span>
-                    <h2 class="text-4xl font-bold">${escapeHtml(word.en)}</h2>
+                    <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
+                    <h2 class="text-4xl font-bold">${escapeHtml(frontText)}</h2>
                     <p class="mt-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
                 <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
-                    <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${t('learn_back')}</span>
-                    <h2 class="text-3xl font-bold">${escapeHtml(word.de)}</h2>
+                    <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
+                    <h2 class="text-3xl font-bold">${escapeHtml(backText)}</h2>
                 </div>
             </div>`;
 
