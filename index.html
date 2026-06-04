@@ -208,6 +208,65 @@
             transition: background 0.15s;
         }
         .lang-toggle-btn:hover { background: var(--color-primary-light); }
+
+        /* ── Dynamic text scaling on flashcard ── */
+        .card-face-content {
+            max-height: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .card-face-content::-webkit-scrollbar { width: 4px; }
+        .card-face-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+        .card-face-content.dark-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
+
+        /* ── Learn mode banner ── */
+        #learn-mode-banner {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: var(--color-primary);
+            color: #fff;
+            border-radius: 0 0 0.75rem 0.75rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        #learn-mode-banner.visible {
+            opacity: 1;
+        }
+
+        /* ── Scan preview popup ── */
+        #scan-preview-popup {
+            position: fixed; inset: 0; z-index: 80;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: flex-end; justify-content: center;
+        }
+        #scan-preview-popup .popup-sheet {
+            width: 100%; max-width: 480px;
+            max-height: 85vh;
+            display: flex; flex-direction: column;
+            border-radius: 1.5rem 1.5rem 0 0;
+            padding: 1.25rem 1.25rem 2.25rem;
+            animation: slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
+        }
+        .dark #scan-preview-popup .popup-sheet { background: #1e293b; }
+        #scan-preview-popup .popup-sheet { background: #fff; }
+        #scan-preview-popup .pair-list {
+            flex: 1; overflow-y: auto;
+            padding-right: 0.25rem;
+        }
     </style>
 </head>
 
@@ -363,15 +422,23 @@
                 <div id="learn-deck-list" class="w-full max-w-sm space-y-3"></div>
             </div>
 
-            <div id="learn-session" class="hidden flex flex-col h-full">
-                <!-- NEU: Richtungswechsel-Button hinzugefügt -->
+            <div id="learn-session" class="hidden flex flex-col h-full" style="position:relative">
+                <!-- Mode banner -->
+                <div id="learn-mode-banner"><i class="fa-solid fa-shuffle mr-2" id="learn-banner-icon"></i><span id="learn-banner-text"></span></div>
+                <!-- Session header with 3 mode buttons -->
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
                         <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium"></span>
                     </button>
-                    <div class="flex items-center gap-3">
-                        <button onclick="toggleLearnDirection()" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" title="Richtung wechseln">
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleLearnDirection()" id="btn-direction" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_direction_title">
                             <i class="fa-solid fa-arrows-rotate text-sm"></i>
+                        </button>
+                        <button onclick="setLearnMode('shuffle')" id="btn-shuffle" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_shuffle_title">
+                            <i class="fa-solid fa-shuffle text-sm"></i>
+                        </button>
+                        <button onclick="setLearnMode('chrono')" id="btn-chrono" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_chrono_title">
+                            <i class="fa-solid fa-clock-rotate-left text-sm"></i>
                         </button>
                         <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
                     </div>
@@ -433,7 +500,28 @@
             </div>
         </section>
 
-    </main><!-- end main -->
+    
+    <!-- ═══ SCAN PREVIEW POPUP ═══ -->
+    <div id="scan-preview-popup" class="hidden" onclick="closeScanPopupOnBackdrop(event)">
+        <div class="popup-sheet">
+            <div class="flex justify-between items-center mb-3 flex-shrink-0">
+                <h3 class="text-base font-bold" id="scan-popup-title" data-i18n="scan_preview_title"></h3>
+                <button onclick="closeScanPreviewPopup()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-muted mb-3 flex-shrink-0" id="scan-popup-subtitle" data-i18n="scan_preview_subtitle"></p>
+            <div id="scan-popup-pair-list" class="pair-list space-y-2 mb-4"></div>
+            <div class="flex gap-2 flex-shrink-0">
+                <button onclick="flipAllScanPairs()" class="flex-1 border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition text-sm flex items-center justify-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-right-left"></i> <span data-i18n="scan_preview_flip"></span>
+                </button>
+                <button onclick="confirmScanPairs()" class="flex-1 accent-bg text-white py-3 rounded-2xl font-semibold accent-shadow transition text-sm flex items-center justify-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-check"></i> <span data-i18n="scan_preview_confirm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</main><!-- end main -->
 
     <!-- ═══ BOTTOM NAV ═══ -->
     <nav id="bottom-nav" class="hidden flex-shrink-0 bg-surface border-t border-subtle px-6 pt-0 pb-safe z-20">
@@ -622,6 +710,18 @@
             prompt_vocab_back:    'Rückseite (z.B. Deutsch):',
             prompt_vocab_front_edit: 'Vorderseite:',
             prompt_vocab_back_edit:  'Rückseite:',
+            // Learn mode buttons
+            learn_mode_direction_title: 'Richtung wechseln',
+            learn_mode_shuffle_title:   'Zufallsmodus',
+            learn_mode_chrono_title:    'Chronologischer Modus',
+            learn_banner_direction:     '↔ Richtung gewechselt',
+            learn_banner_shuffle:       '🔀 Zufallsmodus aktiviert',
+            learn_banner_chrono:        '🕐 Chronologischer Modus aktiviert',
+            // Scan preview popup
+            scan_preview_title:    'Erkannte Vokabeln prüfen',
+            scan_preview_subtitle: 'Prüfe die Paare und kehre sie ggf. um, bevor du sie speicherst.',
+            scan_preview_flip:     'Alle umkehren',
+            scan_preview_confirm:  'Zur Liste hinzufügen',
         },
         en: {
             // Onboarding
@@ -716,6 +816,18 @@
             prompt_vocab_back:    'Back side (e.g. English):',
             prompt_vocab_front_edit: 'Front side:',
             prompt_vocab_back_edit:  'Back side:',
+            // Learn mode buttons
+            learn_mode_direction_title: 'Swap direction',
+            learn_mode_shuffle_title:   'Shuffle mode',
+            learn_mode_chrono_title:    'Chronological mode',
+            learn_banner_direction:     '↔ Direction swapped',
+            learn_banner_shuffle:       '🔀 Shuffle mode activated',
+            learn_banner_chrono:        '🕐 Chronological mode activated',
+            // Scan preview popup
+            scan_preview_title:    'Review detected vocabulary',
+            scan_preview_subtitle: 'Check the pairs and flip them if needed before saving.',
+            scan_preview_flip:     'Flip all',
+            scan_preview_confirm:  'Add to list',
         }
     };
 
@@ -881,8 +993,11 @@
     let currentLearnDeck     = null;
     let currentCardIndex     = 0;
     let isCardFlipped        = false;
-    let learnDirectionReversed = false; // NEU: Speichert die Abfragerichtung
+    let learnDirectionReversed = false; // Speichert die Abfragerichtung
+    let learnMode = 'chrono'; // 'chrono' | 'shuffle'
     let touchStartX = 0, touchEndX = 0;
+    let _scanPreviewPairs = []; // Temporäre Scan-Paare für das Vorschau-Popup
+    let _scanPreviewDeckId = null;
     let currentDetailDeckId  = null;
 
     // ══════════════════════════════════════════════
@@ -1066,7 +1181,13 @@
     // ══════════════════════════════════════════════
     function triggerImport() { document.getElementById('backup-input').click(); }
 
-    function importData(event) {
+    /** Convert legacy {en,de} word objects to the current {front,back} schema */
+    function migrateWord(w) {
+        if (w.front !== undefined || w.back !== undefined) return w; // already new schema
+        return { id: w.id || (Date.now() + Math.random()), front: w.en || '', back: w.de || '' };
+    }
+
+        function importData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
@@ -1076,18 +1197,20 @@
                 if (Array.isArray(data) && data.length > 0 && data[0].words !== undefined) {
                     let imported = 0;
                     for (const deck of data) {
+                        // Migrate legacy word schema {en/de} → {front/back}
+                        deck.words = (deck.words || []).map(w => migrateWord(w));
                         const existing = decks.find(d => d.id === deck.id);
                         if (!existing) { await saveDeck(deck); imported += deck.words.length; }
                     }
                     appState.lastBackupWordCount = totalWordCount();
                     await saveState();
                     alert(t('alert_import_success')(imported));
-                } else if (Array.isArray(data) && data[0]?.en) {
+                } else if (Array.isArray(data) && (data[0]?.en || data[0]?.front)) {
                     const target = decks[0];
-                    const existingWords = new Set(target.words.map(w => w.en.toLowerCase()));
+                    const existingWords = new Set(target.words.map(w => (w.front||'').toLowerCase()));
                     const newWords = data
-                        .filter(w => w.en && w.de && !existingWords.has(w.en.toLowerCase()))
-                        .map(w => ({ id: Date.now() + Math.random(), en: w.en, de: w.de }));
+                        .map(w => migrateWord(w))
+                        .filter(w => w.front && w.back && !existingWords.has(w.front.toLowerCase()));
                     target.words = [...newWords, ...target.words];
                     await saveDeck(target);
                     appState.lastBackupWordCount = totalWordCount();
@@ -1211,26 +1334,27 @@
                 deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
             }
 
-            const newWords = pairs.map((p, i) => ({
+            const newPairs = pairs.map((p, i) => ({
                 id: Date.now() + i,
-                en: (p.front || '').trim(),
-                de: (p.back  || '').trim(),
-            })).filter(w => w.en && w.de);
-
-            deck.words = [...deck.words, ...newWords];
-            await saveDeck(deck);
-            await saveState();
+                front: (p.front || '').trim(),
+                back:  (p.back  || '').trim(),
+            })).filter(w => w.front && w.back);
 
             loader.classList.add('hidden');
+
+            if (newPairs.length === 0) throw new Error(t('scan_no_vocab'));
+
+            // Show preview popup
+            _scanPreviewPairs  = newPairs;
+            _scanPreviewDeckId = deck.id;
+            openScanPreviewPopup();
+
             _scanImageBase64 = null;
             const previewImg  = document.getElementById('scan-preview-img');
             const placeholder = document.getElementById('scan-placeholder');
             if (previewImg)  { previewImg.src = ''; previewImg.classList.add('hidden'); }
             if (placeholder) { placeholder.classList.remove('hidden'); }
             scanBtn.disabled = true;
-
-            currentDetailDeckId = deck.id;
-            switchView('deck-detail');
 
         } catch (err) {
             console.error('AI scan error:', err);
@@ -1241,6 +1365,67 @@
     }
 
     // ══════════════════════════════════════════════
+    //  Scan Preview Popup
+    // ══════════════════════════════════════════════
+    function openScanPreviewPopup() {
+        const popup = document.getElementById('scan-preview-popup');
+        if (!popup) return;
+        renderScanPopupPairs();
+        // Apply i18n to popup static elements
+        document.querySelectorAll('#scan-preview-popup [data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            const val = t(key);
+            if (typeof val === 'string') el.textContent = val;
+        });
+        popup.classList.remove('hidden');
+    }
+
+    function renderScanPopupPairs() {
+        const list = document.getElementById('scan-popup-pair-list');
+        if (!list) return;
+        list.innerHTML = '';
+        _scanPreviewPairs.forEach((pair, idx) => {
+            const row = document.createElement('div');
+            row.className = 'bg-card border border-subtle rounded-xl p-3 flex items-center gap-3';
+            row.innerHTML = `
+                <span class="text-xs font-bold text-muted w-5 text-right flex-shrink-0">${idx + 1}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-sm truncate">${escapeHtml(pair.front)}</p>
+                    <p class="text-muted text-xs mt-0.5 truncate">${escapeHtml(pair.back)}</p>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function flipAllScanPairs() {
+        _scanPreviewPairs = _scanPreviewPairs.map(p => ({ id: p.id, front: p.back, back: p.front }));
+        renderScanPopupPairs();
+    }
+
+    async function confirmScanPairs() {
+        const deck = decks.find(d => d.id === _scanPreviewDeckId) || decks[0];
+        if (!deck) return;
+        deck.words = [...deck.words, ..._scanPreviewPairs];
+        await saveDeck(deck);
+        await saveState();
+        closeScanPreviewPopup();
+        currentDetailDeckId = deck.id;
+        switchView('deck-detail');
+    }
+
+    function closeScanPreviewPopup() {
+        const popup = document.getElementById('scan-preview-popup');
+        if (popup) popup.classList.add('hidden');
+        _scanPreviewPairs  = [];
+        _scanPreviewDeckId = null;
+    }
+
+    function closeScanPopupOnBackdrop(e) {
+        if (e.target === document.getElementById('scan-preview-popup')) closeScanPreviewPopup();
+    }
+
+        // ══════════════════════════════════════════════
     //  List View – Deck Overview
     // ══════════════════════════════════════════════
     function renderDeckOverview() {
@@ -1342,8 +1527,8 @@
             item.className = 'bg-card p-4 rounded-2xl border border-subtle flex justify-between items-center';
             item.innerHTML = `
                 <div class="min-w-0 flex-1">
-                    <p class="font-bold">${escapeHtml(w.en)}</p>
-                    <p class="text-muted text-sm mt-0.5">${escapeHtml(w.de)}</p>
+                    <p class="font-bold">${escapeHtml(w.front)}</p>
+                    <p class="text-muted text-sm mt-0.5">${escapeHtml(w.back)}</p>
                 </div>
                 <div class="flex gap-3 ml-3 flex-shrink-0">
                     <button onclick="editVocab(${idx})" class="text-muted hover:accent-text transition"><i class="fa-solid fa-pen text-sm"></i></button>
@@ -1361,7 +1546,7 @@
         if (!en) return;
         const de = prompt(t('prompt_vocab_back'));
         if (!de) return;
-        deck.words.unshift({ id: Date.now(), en: en.trim(), de: de.trim() });
+        deck.words.unshift({ id: Date.now(), front: en.trim(), back: de.trim() });
         await saveDeck(deck);
         renderDeckDetail();
     }
@@ -1370,11 +1555,11 @@
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
         const w  = deck.words[idx];
-        const en = prompt(t('prompt_vocab_front_edit'), w.en);
+        const en = prompt(t('prompt_vocab_front_edit'), w.front);
         if (en === null) return;
-        const de = prompt(t('prompt_vocab_back_edit'), w.de);
+        const de = prompt(t('prompt_vocab_back_edit'), w.back);
         if (de === null) return;
-        deck.words[idx] = { ...w, en: en.trim(), de: de.trim() };
+        deck.words[idx] = { ...w, front: en.trim(), back: de.trim() };
         await saveDeck(deck);
         renderDeckDetail();
     }
@@ -1480,10 +1665,61 @@
     function toggleLearnDirection() {
         learnDirectionReversed = !learnDirectionReversed;
         isCardFlipped = false;
+        showLearnBanner(t('learn_banner_direction'), 'fa-arrows-rotate');
         renderFlashcard();
     }
 
-    function renderFlashcard() {
+    /** getDynamicTextSize(text) → CSS font-size string based on text length */
+    function getDynamicTextSize(text) {
+        const len = (text || '').length;
+        if (len <= 15)  return '2.2rem';
+        if (len <= 30)  return '1.75rem';
+        if (len <= 60)  return '1.35rem';
+        if (len <= 100) return '1.1rem';
+        if (len <= 180) return '0.95rem';
+        return '0.82rem';
+    }
+
+    /** setLearnMode: 'shuffle' | 'chrono' */
+    function setLearnMode(mode) {
+        learnMode = mode;
+        // shuffle: randomise remaining words
+        if (mode === 'shuffle') {
+            const words = window._learnWords || [];
+            for (let i = words.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [words[i], words[j]] = [words[j], words[i]];
+            }
+            window._learnWords = words;
+        } else {
+            // chrono: restore original deck order
+            const words = window._learnWords || [];
+            words.sort((a, b) => (a.id || 0) - (b.id || 0));
+            window._learnWords = words;
+        }
+        currentCardIndex = 0;
+        isCardFlipped = false;
+        showLearnBanner(mode === 'shuffle' ? t('learn_banner_shuffle') : t('learn_banner_chrono'), mode === 'shuffle' ? 'fa-shuffle' : 'fa-clock-rotate-left');
+        renderFlashcard();
+        // Highlight active mode button
+        ['shuffle', 'chrono'].forEach(m => {
+            const btn = document.getElementById(`btn-${m}`);
+            if (btn) btn.classList.toggle('accent-text', m === mode);
+        });
+    }
+
+    function showLearnBanner(text, icon) {
+        const banner = document.getElementById('learn-mode-banner');
+        const bannerText = document.getElementById('learn-banner-text');
+        const bannerIcon = document.getElementById('learn-banner-icon');
+        if (!banner) return;
+        bannerText.textContent = text;
+        if (bannerIcon) bannerIcon.className = `fa-solid ${icon} mr-2`;
+        banner.classList.add('visible');
+        setTimeout(() => banner.classList.remove('visible'), 1200);
+    }
+
+        function renderFlashcard() {
         const container  = document.getElementById('flashcard-container');
         const actionBtns = document.getElementById('learn-actions');
         if (!container) return;
@@ -1501,22 +1737,29 @@
 
         const word = words[currentCardIndex];
 
-        // NEU: Anwendung des Richtungswechsels
-        const frontText = learnDirectionReversed ? word.de : word.en;
-        const backText  = learnDirectionReversed ? word.en : word.de;
+        // Anwendung des Richtungswechsels (front/back schema)
+        const frontText = learnDirectionReversed ? (word.back || word.de || '') : (word.front || word.en || '');
+        const backText  = learnDirectionReversed ? (word.front || word.en || '') : (word.back || word.de || '');
         const frontLabel = learnDirectionReversed ? t('learn_back') : t('learn_front');
         const backLabel  = learnDirectionReversed ? t('learn_front') : t('learn_back');
 
+        const frontSize = getDynamicTextSize(frontText);
+        const backSize  = getDynamicTextSize(backText);
+
         container.innerHTML = `
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
-                <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-8 text-center">
+                <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center overflow-hidden">
                     <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
-                    <h2 class="text-4xl font-bold">${escapeHtml(frontText)}</h2>
-                    <p class="mt-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
+                    <div class="card-face-content mt-4">
+                        <h2 class="font-bold leading-snug" style="font-size:${frontSize}">${escapeHtml(frontText)}</h2>
+                        <p class="mt-5 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
+                    </div>
                 </div>
-                <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
+                <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white overflow-hidden">
                     <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
-                    <h2 class="text-3xl font-bold">${escapeHtml(backText)}</h2>
+                    <div class="card-face-content mt-4">
+                        <h2 class="font-bold leading-snug" style="font-size:${backSize}">${escapeHtml(backText)}</h2>
+                    </div>
                 </div>
             </div>`;
 
@@ -1554,9 +1797,16 @@
         if (!card) return;
         card.classList.add(dir === 'left' ? 'swipe-left' : 'swipe-right');
         setTimeout(() => {
-            currentCardIndex = dir === 'left'
-                ? (currentCardIndex + 1) % words.length
-                : (currentCardIndex - 1 + words.length) % words.length;
+            if (learnMode === 'shuffle') {
+                // Pick a random index different from current
+                let next;
+                do { next = Math.floor(Math.random() * words.length); } while (next === currentCardIndex && words.length > 1);
+                currentCardIndex = next;
+            } else {
+                currentCardIndex = dir === 'left'
+                    ? (currentCardIndex + 1) % words.length
+                    : (currentCardIndex - 1 + words.length) % words.length;
+            }
             isCardFlipped = false;
             renderFlashcard();
         }, 300);
