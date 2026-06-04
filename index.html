@@ -39,8 +39,8 @@
     <style>
         /* ── CSS Custom Properties for theming ── */
         :root {
-            --color-primary: #6366f1;       /* indigo-500 */
-            --color-primary-hover: #4f46e5; /* indigo-600 */
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
             --color-primary-light: rgba(99,102,241,0.15);
             --color-primary-shadow: rgba(99,102,241,0.35);
         }
@@ -75,7 +75,7 @@
         @keyframes swipeLeftOut  { to { transform: translateX(-100%) rotate(-10deg); opacity: 0; } }
         @keyframes swipeRightOut { to { transform: translateX(100%)  rotate(10deg);  opacity: 0; } }
 
-        /* ── Accent-color utilities (driven by CSS vars) ── */
+        /* ── Accent-color utilities ── */
         .accent-bg     { background-color: var(--color-primary); }
         .accent-bg-hover:hover { background-color: var(--color-primary-hover); }
         .accent-text   { color: var(--color-primary); }
@@ -154,10 +154,60 @@
 
         /* ── Deck detail back button ── */
         .back-btn { cursor: pointer; }
+
+        /* ── Language picker buttons on Onboarding ── */
+        .lang-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            width: 100%;
+            max-width: 24rem;
+            padding: 0.9rem 1.5rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: 2px solid transparent;
+            transition: transform 0.15s, background 0.15s, border-color 0.15s;
+            cursor: pointer;
+        }
+        .lang-btn:active { transform: scale(0.97); }
+        .lang-btn.lang-de {
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+        .lang-btn.lang-en {
+            background: transparent;
+            color: #64748b;
+            border-color: #cbd5e1;
+        }
+        .dark .lang-btn.lang-en { color: #94a3b8; border-color: #334155; }
+        .lang-btn.lang-selected {
+            background: var(--color-primary);
+            color: #fff;
+            border-color: var(--color-primary);
+        }
+
+        /* ── Language toggle in Settings ── */
+        .lang-toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.3rem 0.75rem;
+            border-radius: 0.6rem;
+            border: 1.5px solid var(--color-primary);
+            color: var(--color-primary);
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .lang-toggle-btn:hover { background: var(--color-primary-light); }
     </style>
 </head>
 
-<!-- h-screen flex flex-col: strict layout so footer never floats over content -->
 <body class="bg-surface text-base transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col font-sans">
 
     <!-- Hidden file input for backup import -->
@@ -172,19 +222,19 @@
             <h1 class="text-lg font-bold tracking-tight" id="header-title">Flashcard-AI</h1>
         </div>
         <div class="flex gap-3 items-center">
-            <button onclick="triggerImport()" class="text-muted hover:accent-text transition" title="Backup importieren">
+            <button onclick="triggerImport()" class="text-muted hover:accent-text transition" data-i18n-title="import_title">
                 <i class="fa-solid fa-upload text-lg"></i>
             </button>
-            <button onclick="downloadData()" class="text-muted hover:accent-text transition" title="Backup exportieren">
+            <button onclick="downloadData()" class="text-muted hover:accent-text transition" data-i18n-title="export_title">
                 <i class="fa-solid fa-download text-lg"></i>
             </button>
-            <button onclick="openSettingsModal()" class="text-muted hover:accent-text transition" title="Einstellungen">
+            <button onclick="openSettingsModal()" class="text-muted hover:accent-text transition" data-i18n-title="settings_title">
                 <i class="fa-solid fa-sliders text-lg"></i>
             </button>
         </div>
     </header>
 
-    <!-- ═══ MAIN (flex-1 + overflow-y-auto → scrollable, never covered by footer) ═══ -->
+    <!-- ═══ MAIN ═══ -->
     <main class="flex-1 overflow-y-auto hide-scrollbar relative z-0" id="main-container">
 
         <!-- ─── View: Onboarding ─── -->
@@ -201,134 +251,129 @@
                 </button>
             </div>
 
-            <div class="w-20 h-20 accent-bg rounded-3xl flex items-center justify-center mb-8 accent-shadow">
+            <div class="w-20 h-20 accent-bg rounded-3xl flex items-center justify-center mb-6 accent-shadow">
                 <i class="fa-solid fa-brain text-white text-4xl"></i>
             </div>
-            <h2 class="text-3xl font-bold mb-3 text-center">Flashcard-AI - Fokus aufs Wesentliche.</h2>
-            <p class="text-sm text-muted text-center mb-8 max-w-xs">Deine Daten bleiben auf deinem Gerät. Nutze Export/Import für Backups.</p>
+
+            <!-- Language picker: shown at the top of onboarding -->
+            <div class="flex gap-3 mb-7 w-full max-w-sm">
+                <button id="lang-btn-de" class="lang-btn lang-de flex-1" onclick="setLanguage('de')">🇩🇪 Deutsch</button>
+                <button id="lang-btn-en" class="lang-btn lang-en flex-1" onclick="setLanguage('en')">🇺🇸 English</button>
+            </div>
+
+            <h2 class="text-3xl font-bold mb-3 text-center" data-i18n="onboarding_title"></h2>
+            <p class="text-sm text-muted text-center mb-8 max-w-xs" data-i18n="onboarding_subtitle"></p>
 
             <div class="space-y-5 w-full max-w-sm">
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">1</div>
-                    <p class="text-sm">Mache ein Foto von Text oder Notizen.</p>
+                    <p class="text-sm" data-i18n="onboarding_step1"></p>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">2</div>
-                    <p class="text-sm">KI extrahiert automatisch wichtige Wortpaare.</p>
+                    <p class="text-sm" data-i18n="onboarding_step2"></p>
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 rounded-full accent-light accent-text flex justify-center items-center font-bold flex-shrink-0">3</div>
-                    <p class="text-sm">Lerne effizient mit smarten Karteikarten.</p>
+                    <p class="text-sm" data-i18n="onboarding_step3"></p>
                 </div>
             </div>
 
-            <button onclick="finishOnboarding()" class="mt-10 w-full max-w-sm accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95">
-                Jetzt starten
-            </button>
+            <button onclick="finishOnboarding()" class="mt-10 w-full max-w-sm accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95" data-i18n="onboarding_cta"></button>
         </section>
 
         <!-- ─── View: Scan ─── -->
         <section id="view-scan" class="view hidden flex flex-col px-5 pt-4 pb-4 min-h-full">
             <!-- Backup warning -->
             <div id="backup-warning" class="w-full mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-2xl p-3 text-xs flex justify-between items-center hidden">
-                <span><i class="fa-solid fa-triangle-exclamation mr-2"></i>Ungesicherte Vokabeln vorhanden!</span>
-                <button onclick="downloadData()" class="underline font-bold ml-2 whitespace-nowrap">Sichern</button>
+                <span><i class="fa-solid fa-triangle-exclamation mr-2"></i><span data-i18n="backup_warning"></span></span>
+                <button onclick="downloadData()" class="underline font-bold ml-2 whitespace-nowrap" data-i18n="backup_save"></button>
             </div>
 
             <!-- Target deck selector -->
             <div class="mb-4">
-                <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block">Liste für KI-Scan auswählen</label>
+                <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block" data-i18n="scan_deck_label"></label>
                 <select id="scan-target-deck" class="w-full bg-card border border-subtle rounded-xl px-4 py-3 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800">
                 </select>
             </div>
 
-            <!-- Hidden file input: capture=environment öffnet direkt die Kamera auf Mobilgeräten -->
             <input type="file" id="scan-file-input" class="hidden"
                    accept="image/*" capture="environment"
                    onchange="handleImageSelected(event)">
 
             <div class="flex-1 flex flex-col justify-center items-center">
-                <!-- Preview area – Klick öffnet Datei-/Kameradialog -->
                 <div id="scan-preview-area"
                      class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm cursor-pointer active:scale-98 transition-transform"
                      onclick="document.getElementById('scan-file-input').click()">
-                    <!-- Placeholder (sichtbar wenn kein Bild gewählt) -->
                     <div id="scan-placeholder" class="flex flex-col items-center">
                         <i class="fa-solid fa-camera text-5xl text-muted mb-4"></i>
-                        <p class="text-sm text-muted font-medium">Foto aufnehmen oder hochladen</p>
-                        <p class="text-xs text-muted mt-1 opacity-60">Tippe hier</p>
+                        <p class="text-sm text-muted font-medium" data-i18n="scan_placeholder_main"></p>
+                        <p class="text-xs text-muted mt-1 opacity-60" data-i18n="scan_placeholder_sub"></p>
                     </div>
-                    <!-- Bildvorschau (versteckt bis Bild gewählt) -->
-                    <img id="scan-preview-img" src="" alt="Vorschau"
+                    <img id="scan-preview-img" src="" alt="Preview"
                          class="hidden absolute inset-0 w-full h-full object-contain rounded-3xl">
-                    <!-- Loader-Overlay -->
                     <div id="scan-loader" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center hidden backdrop-blur-sm rounded-3xl">
                         <i class="fa-solid fa-circle-notch fa-spin accent-text text-4xl mb-4"></i>
-                        <p class="text-sm font-medium animate-pulse" id="scan-loader-text">KI analysiert Text…</p>
+                        <p class="text-sm font-medium animate-pulse" id="scan-loader-text" data-i18n="scan_loader_analyzing"></p>
                     </div>
                 </div>
 
-                <!-- Fehleranzeige -->
                 <div id="scan-error" class="hidden w-full mb-4 bg-red-500/10 border border-red-400/40 text-red-500 dark:text-red-400 rounded-2xl p-3 text-xs flex items-start gap-2">
                     <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
                     <span id="scan-error-text"></span>
                 </div>
 
-                <!-- Zwei Buttons: Bild wählen + Scan starten -->
                 <div class="w-full flex flex-col gap-3">
                     <button onclick="document.getElementById('scan-file-input').click()"
                             class="w-full border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95">
-                        <i class="fa-solid fa-image"></i> Schritt 1: Bild hochladen / Kamera
+                        <i class="fa-solid fa-image"></i> <span data-i18n="scan_step1_btn"></span>
                     </button>
                     <button id="scan-btn" onclick="startAIScan()" disabled
                             class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Schritt 2: Mit KI scannen
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="scan_step2_btn"></span>
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- ─── View: Lernen ─── -->
+        <!-- ─── View: Lernen / Learn ─── -->
         <section id="view-learn" class="view hidden flex flex-col px-5 pt-3 pb-4" style="height:100%">
-            <!-- Deck selector for learn -->
             <div id="learn-deck-selector" class="hidden flex flex-col items-center justify-center h-full py-8">
                 <div class="w-16 h-16 accent-bg rounded-2xl flex items-center justify-center mb-6 accent-shadow">
                     <i class="fa-solid fa-layer-group text-white text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold mb-2">Welche Liste lernen?</h3>
-                <p class="text-sm text-muted mb-6 text-center">Wähle eine Liste oder lerne aus allen Wortpaaren.</p>
+                <h3 class="text-xl font-bold mb-2" data-i18n="learn_pick_title"></h3>
+                <p class="text-sm text-muted mb-6 text-center" data-i18n="learn_pick_subtitle"></p>
                 <div id="learn-deck-list" class="w-full max-w-sm space-y-3"></div>
             </div>
 
-            <!-- Active learn session -->
             <div id="learn-session" class="hidden flex flex-col h-full">
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
-                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium">Listen</span>
+                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium"></span>
                     </button>
                     <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
                 </div>
 
-                <!-- flashcard-wrapper: grows to fill remaining space -->
                 <div id="flashcard-wrapper">
                     <div class="perspective w-full max-w-md mx-auto" id="flashcard-container"></div>
                 </div>
 
                 <div id="learn-actions" class="mt-4 flex justify-between gap-4 max-w-md mx-auto w-full flex-shrink-0 opacity-0 pointer-events-none transition-opacity duration-300">
                     <button onclick="handleCardResult('repeat')" class="flex-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 py-4 rounded-2xl font-bold active:scale-95 transition">
-                        <i class="fa-solid fa-xmark mb-1 block text-xl"></i> Wiederholen
+                        <i class="fa-solid fa-xmark mb-1 block text-xl"></i> <span data-i18n="learn_repeat"></span>
                     </button>
                     <button onclick="handleCardResult('known')" class="flex-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 py-4 rounded-2xl font-bold active:scale-95 transition">
-                        <i class="fa-solid fa-check mb-1 block text-xl"></i> Gewusst
+                        <i class="fa-solid fa-check mb-1 block text-xl"></i> <span data-i18n="learn_known"></span>
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- ─── View: Liste (Deck Overview) ─── -->
+        <!-- ─── View: Liste / Lists ─── -->
         <section id="view-list" class="view hidden px-5 pt-4 pb-6 min-h-full">
             <button onclick="createNewDeck()" class="w-full border accent-border accent-text py-3 rounded-xl font-semibold mb-5 hover:accent-light transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-plus"></i> Neue Liste erstellen
+                <i class="fa-solid fa-plus"></i> <span data-i18n="list_new_btn"></span>
             </button>
             <div id="deck-overview" class="space-y-3"></div>
         </section>
@@ -340,25 +385,25 @@
                 <span id="deck-detail-count" class="text-xs text-muted"></span>
             </div>
             <button onclick="addManualVocab()" class="w-full border accent-border accent-text py-3 rounded-xl font-semibold mb-4 hover:accent-light transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-plus"></i> Manuell hinzufügen
+                <i class="fa-solid fa-plus"></i> <span data-i18n="detail_add_manual"></span>
             </button>
             <div id="vocab-list" class="space-y-3 pb-4"></div>
         </section>
 
-        <!-- ─── View: Ziele ─── -->
+        <!-- ─── View: Ziele / Goals ─── -->
         <section id="view-goals" class="view hidden px-5 pt-4 pb-6 min-h-full">
             <div class="bg-card p-6 rounded-3xl shadow-sm mb-5 flex flex-col items-center justify-center border border-subtle">
                 <div class="text-6xl mb-2">🔥</div>
-                <h3 class="text-3xl font-bold"><span id="streak-count">0</span> Tage</h3>
-                <p class="text-sm text-muted mt-1">Aktuelle Streak</p>
+                <h3 class="text-3xl font-bold"><span id="streak-count">0</span> <span data-i18n="goals_days"></span></h3>
+                <p class="text-sm text-muted mt-1" data-i18n="goals_streak_label"></p>
             </div>
             <div class="bg-card p-6 rounded-3xl shadow-sm border border-subtle">
                 <div class="flex justify-between items-end mb-4">
                     <div>
-                        <h3 class="text-lg font-bold">Tagesziel</h3>
-                        <p class="text-xs text-muted" id="goal-text">0 / 20 Karten gelernt</p>
+                        <h3 class="text-lg font-bold" data-i18n="goals_daily_title"></h3>
+                        <p class="text-xs text-muted" id="goal-text"></p>
                     </div>
-                    <button onclick="setDailyGoal()" class="accent-text text-sm"><i class="fa-solid fa-pen"></i> Ändern</button>
+                    <button onclick="setDailyGoal()" class="accent-text text-sm"><i class="fa-solid fa-pen"></i> <span data-i18n="goals_change"></span></button>
                 </div>
                 <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-2">
                     <div id="goal-progress" class="accent-bg h-3 rounded-full transition-all duration-500" style="width:0%"></div>
@@ -368,31 +413,31 @@
 
     </main><!-- end main -->
 
-    <!-- ═══ BOTTOM NAV (flex-shrink-0: never overlaps content) ═══ -->
+    <!-- ═══ BOTTOM NAV ═══ -->
     <nav id="bottom-nav" class="hidden flex-shrink-0 bg-surface border-t border-subtle px-6 pt-2 pb-safe z-20">
         <ul class="flex justify-between items-center pb-3 pt-1">
             <li>
                 <button onclick="switchView('scan')" id="nav-scan" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-camera text-xl mb-1"></i>
-                    <span class="text-[10px] font-medium">Scannen</span>
+                    <span class="text-[10px] font-medium" data-i18n="nav_scan"></span>
                 </button>
             </li>
             <li>
                 <button onclick="switchView('learn')" id="nav-learn" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-layer-group text-xl mb-1"></i>
-                    <span class="text-[10px] font-medium">Lernen</span>
+                    <span class="text-[10px] font-medium" data-i18n="nav_learn"></span>
                 </button>
             </li>
             <li>
                 <button onclick="switchView('list')" id="nav-list" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-list-ul text-xl mb-1"></i>
-                    <span class="text-[10px] font-medium">Listen</span>
+                    <span class="text-[10px] font-medium" data-i18n="nav_list"></span>
                 </button>
             </li>
             <li>
                 <button onclick="switchView('goals')" id="nav-goals" class="nav-btn flex flex-col items-center p-2 text-muted hover:accent-text transition">
                     <i class="fa-solid fa-bullseye text-xl mb-1"></i>
-                    <span class="text-[10px] font-medium">Ziele</span>
+                    <span class="text-[10px] font-medium" data-i18n="nav_goals"></span>
                 </button>
             </li>
         </ul>
@@ -402,22 +447,22 @@
     <div id="settings-modal" class="modal-overlay hidden" onclick="closeSettingsOnBackdrop(event)">
         <div class="modal-sheet">
             <div class="flex justify-between items-center mb-5">
-                <h3 class="text-lg font-bold">Einstellungen</h3>
+                <h3 class="text-lg font-bold" data-i18n="settings_title_modal"></h3>
                 <button onclick="closeSettingsModal()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
             <!-- Theme toggle -->
             <div class="flex justify-between items-center py-3 border-b border-subtle">
-                <span class="font-medium text-sm">Erscheinungsbild</span>
+                <span class="font-medium text-sm" data-i18n="settings_appearance"></span>
                 <button onclick="toggleTheme()" id="theme-toggle-btn" class="flex items-center gap-2 text-sm accent-text font-semibold">
                     <i class="fa-solid fa-moon" id="theme-icon"></i>
-                    <span id="theme-label">Dark</span>
+                    <span id="theme-label"></span>
                 </button>
             </div>
 
             <!-- Accent color -->
             <div class="py-4 border-b border-subtle">
-                <p class="font-medium text-sm mb-3">Akzentfarbe</p>
+                <p class="font-medium text-sm mb-3" data-i18n="settings_accent"></p>
                 <div class="flex gap-4 items-center">
                     <div class="flex flex-col items-center gap-1">
                         <button class="accent-dot" data-accent="indigo" style="background:#6366f1" onclick="setAccent('indigo')"></button>
@@ -434,13 +479,22 @@
                 </div>
             </div>
 
+            <!-- Language toggle -->
+            <div class="flex justify-between items-center py-3 border-b border-subtle">
+                <span class="font-medium text-sm" data-i18n="settings_language"></span>
+                <div class="flex gap-2">
+                    <button onclick="setLanguage('de')" id="settings-lang-de" class="lang-toggle-btn">🇩🇪 DE</button>
+                    <button onclick="setLanguage('en')" id="settings-lang-en" class="lang-toggle-btn">🇺🇸 EN</button>
+                </div>
+            </div>
+
             <!-- Data actions -->
             <div class="pt-4 space-y-3">
                 <button onclick="triggerImport(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-upload accent-text"></i> Backup importieren
+                    <i class="fa-solid fa-upload accent-text"></i> <span data-i18n="settings_import"></span>
                 </button>
                 <button onclick="downloadData(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-download accent-text"></i> Backup exportieren
+                    <i class="fa-solid fa-download accent-text"></i> <span data-i18n="settings_export"></span>
                 </button>
             </div>
         </div>
@@ -448,13 +502,288 @@
 
     <!-- ═══ APP LOGIC ═══ -->
     <script>
+
+    // ══════════════════════════════════════════════
+    //  i18n – Translations Dictionary
+    // ══════════════════════════════════════════════
+    const translations = {
+        de: {
+            // Onboarding
+            onboarding_title:    'Flashcard-AI – Fokus aufs Wesentliche.',
+            onboarding_subtitle: 'Deine Daten bleiben auf deinem Gerät. Nutze Export/Import für Backups.',
+            onboarding_step1:    'Mache ein Foto von Text oder Notizen.',
+            onboarding_step2:    'KI extrahiert automatisch wichtige Wortpaare.',
+            onboarding_step3:    'Lerne effizient mit smarten Karteikarten.',
+            onboarding_cta:      'Jetzt starten',
+            // Header tooltips
+            import_title:        'Backup importieren',
+            export_title:        'Backup exportieren',
+            settings_title:      'Einstellungen',
+            // Backup warning
+            backup_warning:      'Ungesicherte Vokabeln vorhanden!',
+            backup_save:         'Sichern',
+            // Scan view
+            scan_deck_label:     'Liste für KI-Scan auswählen',
+            scan_placeholder_main: 'Foto aufnehmen oder hochladen',
+            scan_placeholder_sub:  'Tippe hier',
+            scan_loader_analyzing: 'KI analysiert Text…',
+            scan_loader_uploading: 'Bild wird hochgeladen…',
+            scan_loader_ai:        'KI analysiert Bild…',
+            scan_step1_btn:      'Schritt 1: Bild hochladen / Kamera',
+            scan_step2_btn:      'Schritt 2: Mit KI scannen',
+            scan_no_image:       'Bitte zuerst ein Bild auswählen.',
+            scan_no_vocab:       'Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.',
+            // Learn view
+            learn_pick_title:    'Welche Liste lernen?',
+            learn_pick_subtitle: 'Wähle eine Liste oder lerne aus allen Wortpaaren.',
+            learn_repeat:        'Wiederholen',
+            learn_known:         'Gewusst',
+            learn_no_vocab:      'Keine Vokabeln in dieser Liste.\nGehe zu Scannen.',
+            learn_no_vocab_empty:'Noch keine Vokabeln. Gehe zu Scannen.',
+            learn_all_lists:     '🗂 Alle Listen',
+            learn_words_suffix:  'Wörter',
+            learn_front:         'Vorderseite',
+            learn_back:          'Rückseite',
+            learn_flip_hint:     'Tippen zum Drehen',
+            // Nav
+            nav_scan:  'Scannen',
+            nav_learn: 'Lernen',
+            nav_list:  'Listen',
+            nav_goals: 'Ziele',
+            // View titles (header)
+            view_title_scan:        'Scannen',
+            view_title_learn:       'Lernen',
+            view_title_list:        'Listen',
+            view_title_deck_detail: 'Liste',
+            view_title_goals:       'Fortschritt',
+            // List view
+            list_new_btn: 'Neue Liste erstellen',
+            list_empty:   'Noch keine Listen vorhanden.',
+            // Deck detail
+            detail_add_manual: 'Manuell hinzufügen',
+            detail_empty:      'Noch leer. Füge Vokabeln hinzu.',
+            detail_vocab_count_singular: 'Vokabel',
+            detail_vocab_count_plural:   'Vokabeln',
+            // Goals view
+            goals_days:          'Tage',
+            goals_streak_label:  'Aktuelle Streak',
+            goals_daily_title:   'Tagesziel',
+            goals_change:        'Ändern',
+            goals_cards_learned: 'Karten gelernt',
+            // Settings modal
+            settings_title_modal: 'Einstellungen',
+            settings_appearance:  'Erscheinungsbild',
+            settings_theme_dark:  'Dark',
+            settings_theme_light: 'Hell',
+            settings_accent:      'Akzentfarbe',
+            settings_language:    'Sprache',
+            settings_import:      'Backup importieren',
+            settings_export:      'Backup exportieren',
+            // Deck selector words suffix
+            deck_words_suffix:    'Wörter',
+            // Alerts / prompts
+            alert_import_success: (n) => `Erfolgreich importiert! ${n} neue Vokabeln.`,
+            alert_import_legacy:  (n, name) => `${n} Vokabeln in "${name}" importiert.`,
+            alert_import_unknown: 'Unbekanntes Backup-Format.',
+            alert_import_error:   'Fehler beim Lesen der Datei.',
+            alert_no_vocab_export:'Keine Vokabeln zum Sichern.',
+            alert_last_deck:      'Du kannst die letzte Liste nicht löschen.',
+            confirm_delete_deck:  (name, count) => `Liste "${name}" mit ${count} Vokabeln löschen?`,
+            confirm_delete_vocab: 'Wirklich löschen?',
+            prompt_new_deck:      'Name der neuen Liste:',
+            prompt_rename_deck:   'Neuer Name:',
+            prompt_daily_goal:    'Tagesziel (Anzahl Karten):',
+            prompt_vocab_front:   'Vorderseite (z.B. Spanisch):',
+            prompt_vocab_back:    'Rückseite (z.B. Deutsch):',
+            prompt_vocab_front_edit: 'Vorderseite:',
+            prompt_vocab_back_edit:  'Rückseite:',
+        },
+        en: {
+            // Onboarding
+            onboarding_title:    'Flashcard-AI – Focus on What Matters.',
+            onboarding_subtitle: 'Your data stays on your device. Use Export/Import for backups.',
+            onboarding_step1:    'Take a photo of text or notes.',
+            onboarding_step2:    'AI automatically extracts key word pairs.',
+            onboarding_step3:    'Learn efficiently with smart flashcards.',
+            onboarding_cta:      'Get Started',
+            // Header tooltips
+            import_title:        'Import backup',
+            export_title:        'Export backup',
+            settings_title:      'Settings',
+            // Backup warning
+            backup_warning:      'Unsaved vocabulary exists!',
+            backup_save:         'Save',
+            // Scan view
+            scan_deck_label:     'Select list for AI scan',
+            scan_placeholder_main: 'Take or upload a photo',
+            scan_placeholder_sub:  'Tap here',
+            scan_loader_analyzing: 'AI is analyzing text…',
+            scan_loader_uploading: 'Uploading image…',
+            scan_loader_ai:        'AI is analyzing image…',
+            scan_step1_btn:      'Step 1: Upload image / Camera',
+            scan_step2_btn:      'Step 2: Scan with AI',
+            scan_no_image:       'Please select an image first.',
+            scan_no_vocab:       'AI found no vocabulary. Try a clearer photo.',
+            // Learn view
+            learn_pick_title:    'Which list to study?',
+            learn_pick_subtitle: 'Choose a list or study all word pairs.',
+            learn_repeat:        'Repeat',
+            learn_known:         'Got it',
+            learn_no_vocab:      'No vocabulary in this list.\nGo to Scan.',
+            learn_no_vocab_empty:'No vocabulary yet. Go to Scan.',
+            learn_all_lists:     '🗂 All Lists',
+            learn_words_suffix:  'words',
+            learn_front:         'Front',
+            learn_back:          'Back',
+            learn_flip_hint:     'Tap to flip',
+            // Nav
+            nav_scan:  'Scan',
+            nav_learn: 'Learn',
+            nav_list:  'Lists',
+            nav_goals: 'Goals',
+            // View titles (header)
+            view_title_scan:        'Scan',
+            view_title_learn:       'Learn',
+            view_title_list:        'Lists',
+            view_title_deck_detail: 'List',
+            view_title_goals:       'Progress',
+            // List view
+            list_new_btn: 'Create new list',
+            list_empty:   'No lists yet.',
+            // Deck detail
+            detail_add_manual: 'Add manually',
+            detail_empty:      'Empty. Add vocabulary.',
+            detail_vocab_count_singular: 'word',
+            detail_vocab_count_plural:   'words',
+            // Goals view
+            goals_days:          'days',
+            goals_streak_label:  'Current streak',
+            goals_daily_title:   'Daily goal',
+            goals_change:        'Change',
+            goals_cards_learned: 'cards learned',
+            // Settings modal
+            settings_title_modal: 'Settings',
+            settings_appearance:  'Appearance',
+            settings_theme_dark:  'Dark',
+            settings_theme_light: 'Light',
+            settings_accent:      'Accent color',
+            settings_language:    'Language',
+            settings_import:      'Import backup',
+            settings_export:      'Export backup',
+            // Deck selector words suffix
+            deck_words_suffix:    'words',
+            // Alerts / prompts
+            alert_import_success: (n) => `Successfully imported! ${n} new words.`,
+            alert_import_legacy:  (n, name) => `${n} words imported into "${name}".`,
+            alert_import_unknown: 'Unknown backup format.',
+            alert_import_error:   'Error reading file.',
+            alert_no_vocab_export:'No vocabulary to save.',
+            alert_last_deck:      'You cannot delete the last list.',
+            confirm_delete_deck:  (name, count) => `Delete list "${name}" with ${count} words?`,
+            confirm_delete_vocab: 'Really delete?',
+            prompt_new_deck:      'Name of the new list:',
+            prompt_rename_deck:   'New name:',
+            prompt_daily_goal:    'Daily goal (number of cards):',
+            prompt_vocab_front:   'Front side (e.g. Spanish):',
+            prompt_vocab_back:    'Back side (e.g. English):',
+            prompt_vocab_front_edit: 'Front side:',
+            prompt_vocab_back_edit:  'Back side:',
+        }
+    };
+
+    // ── Active language (set before DOMContentLoaded) ──
+    let currentLang = 'de';
+
+    /** t(key) – returns a string translation or a function for dynamic messages */
+    function t(key) {
+        return translations[currentLang]?.[key] ?? translations['de']?.[key] ?? key;
+    }
+
+    /**
+     * setLanguage(lang)
+     * 1. Stores the choice in localStorage
+     * 2. Updates all [data-i18n] elements in the DOM
+     * 3. Updates all [data-i18n-title] elements (title attributes)
+     * 4. Sets the <html lang="…"> attribute
+     * 5. Refreshes dynamic UI that was rendered with hardcoded strings
+     */
+    function setLanguage(lang) {
+        if (lang !== 'de' && lang !== 'en') return;
+        currentLang = lang;
+        localStorage.setItem('language', lang);
+        document.documentElement.lang = lang;
+
+        // Update all static [data-i18n] elements
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.dataset.i18n;
+            const val = t(key);
+            if (typeof val === 'string') el.textContent = val;
+        });
+
+        // Update title attributes for icon buttons
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+            const key = el.dataset.i18nTitle;
+            const val = t(key);
+            if (typeof val === 'string') el.title = val;
+        });
+
+        // Highlight active language buttons
+        _updateLangButtons(lang);
+
+        // Re-render dynamic parts that contain translated strings
+        applyTheme();          // re-renders theme label
+        updateGoalUI();        // re-renders "X / Y Karten gelernt"
+        checkBackupStatus();
+
+        // Re-render views that inject translated strings dynamically
+        const activeView = document.querySelector('.view:not(.hidden)');
+        if (activeView) {
+            const id = activeView.id;
+            if (id === 'view-list')        renderDeckOverview();
+            if (id === 'view-deck-detail') renderDeckDetail();
+            if (id === 'view-learn')       initLearnView();
+            if (id === 'view-scan')        populateScanDeckSelector();
+        }
+    }
+
+    /** Visual feedback: highlight active language buttons everywhere */
+    function _updateLangButtons(lang) {
+        // Onboarding buttons
+        ['de', 'en'].forEach(l => {
+            const btn = document.getElementById(`lang-btn-${l}`);
+            if (!btn) return;
+            btn.classList.toggle('lang-selected', l === lang);
+            btn.classList.toggle('lang-de', l === 'de' && l !== lang);
+            btn.classList.toggle('lang-en', l === 'en' && l !== lang);
+        });
+
+        // Settings buttons
+        const settDe = document.getElementById('settings-lang-de');
+        const settEn = document.getElementById('settings-lang-en');
+        if (settDe) settDe.style.opacity = lang === 'de' ? '1' : '0.45';
+        if (settEn) settEn.style.opacity = lang === 'en' ? '1' : '0.45';
+    }
+
+    /** Called once at startup: detect saved/system language */
+    function initLanguage() {
+        const saved = localStorage.getItem('language');
+        if (saved === 'de' || saved === 'en') {
+            currentLang = saved;
+        } else {
+            // Detect from browser
+            const browserLang = navigator.language || navigator.userLanguage || '';
+            currentLang = browserLang.toLowerCase().startsWith('de') ? 'de' : 'en';
+        }
+        setLanguage(currentLang);
+    }
+
     // ══════════════════════════════════════════════
     //  IndexedDB Layer
     // ══════════════════════════════════════════════
-    const DB_NAME = 'VocabAI';
+    const DB_NAME    = 'VocabAI';
     const DB_VERSION = 1;
-    const STORE_META = 'meta';   // key-value for settings/state
-    const STORE_DECKS = 'decks'; // deck objects: { id, name, words[] }
+    const STORE_META  = 'meta';
+    const STORE_DECKS = 'decks';
 
     let db = null;
 
@@ -512,35 +841,31 @@
     }
 
     // ══════════════════════════════════════════════
-    //  App State (in-memory, synced with IDB)
+    //  App State
     // ══════════════════════════════════════════════
     let appState = {
-        dailyGoal:      20,
-        learnedToday:   0,
-        lastStudyDate:  '',
-        streak:         0,
-        theme:          'dark',
-        accent:         'indigo',
+        dailyGoal:           20,
+        learnedToday:        0,
+        lastStudyDate:       '',
+        streak:              0,
+        theme:               'dark',
+        accent:              'indigo',
         lastBackupWordCount: 0,
-        lastLearnDeckId: null  // remember last used deck
+        lastLearnDeckId:     null
     };
 
-    // Decks: [{ id: number, name: string, words: [{id, en, de}] }]
     let decks = [];
-
-    // Learn session state
-    let currentLearnDeck = null; // deck object currently being studied
-    let currentCardIndex = 0;
-    let isCardFlipped    = false;
+    let currentLearnDeck     = null;
+    let currentCardIndex     = 0;
+    let isCardFlipped        = false;
     let touchStartX = 0, touchEndX = 0;
-
-    // Deck detail state
-    let currentDetailDeckId = null;
+    let currentDetailDeckId  = null;
 
     // ══════════════════════════════════════════════
     //  Init
     // ══════════════════════════════════════════════
     async function initApp() {
+        initLanguage();          // ← i18n first (before any rendered text)
         await openDB();
         await loadState();
         await loadDecks();
@@ -576,11 +901,10 @@
 
     async function loadDecks() {
         decks = await dbGetAll(STORE_DECKS);
-        // Sort by id (creation order)
         decks.sort((a, b) => a.id - b.id);
         if (decks.length === 0) {
-            // Create default deck
-            const def = { id: Date.now(), name: 'Standard-Liste', words: [] };
+            const defName = currentLang === 'de' ? 'Standard-Liste' : 'Default List';
+            const def = { id: Date.now(), name: defName, words: [] };
             await dbPut(STORE_DECKS, def);
             decks = [def];
         }
@@ -588,7 +912,6 @@
 
     async function saveDeck(deck) {
         await dbPut(STORE_DECKS, deck);
-        // keep in-memory array in sync
         const idx = decks.findIndex(d => d.id === deck.id);
         if (idx >= 0) decks[idx] = deck; else decks.push(deck);
     }
@@ -598,7 +921,6 @@
         decks = decks.filter(d => d.id !== deckId);
     }
 
-    // Total word count across all decks (for backup warning)
     function totalWordCount() {
         return decks.reduce((s, d) => s + d.words.length, 0);
     }
@@ -613,21 +935,21 @@
     }
 
     function applyTheme() {
-        const html = document.documentElement;
-        const icon  = document.getElementById('theme-icon');
+        const html   = document.documentElement;
+        const icon   = document.getElementById('theme-icon');
         const iconOb = document.getElementById('theme-icon-onboarding');
-        const label = document.getElementById('theme-label');
+        const label  = document.getElementById('theme-label');
 
         if (appState.theme === 'dark') {
             html.classList.add('dark');
             if (icon)  icon.className  = 'fa-solid fa-sun';
             if (iconOb) iconOb.className = 'fa-solid fa-sun text-xl';
-            if (label) label.textContent = 'Dark';
+            if (label) label.textContent = t('settings_theme_dark');
         } else {
             html.classList.remove('dark');
             if (icon)  icon.className  = 'fa-solid fa-moon';
             if (iconOb) iconOb.className = 'fa-solid fa-moon text-xl';
-            if (label) label.textContent = 'Hell';
+            if (label) label.textContent = t('settings_theme_light');
         }
     }
 
@@ -644,11 +966,7 @@
 
     function updateAccentDots() {
         document.querySelectorAll('.accent-dot').forEach(btn => {
-            if (btn.dataset.accent === appState.accent) {
-                btn.classList.add('selected');
-            } else {
-                btn.classList.remove('selected');
-            }
+            btn.classList.toggle('selected', btn.dataset.accent === appState.accent);
         });
     }
 
@@ -659,6 +977,7 @@
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
         applyTheme();
+        _updateLangButtons(currentLang);
     }
     function closeSettingsModal() {
         document.getElementById('settings-modal').classList.add('hidden');
@@ -687,11 +1006,8 @@
     // ══════════════════════════════════════════════
     function switchView(viewName) {
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-        document.querySelectorAll('.nav-btn').forEach(b => {
-            b.classList.remove('nav-active');
-        });
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
 
-        // Special: deck-detail is a sub-view of list
         const target = viewName === 'deck-detail' ? 'list' : viewName;
         const viewEl = document.getElementById(`view-${viewName}`);
         if (viewEl) viewEl.classList.remove('hidden');
@@ -699,16 +1015,15 @@
         const activeBtn = document.getElementById(`nav-${target}`);
         if (activeBtn) activeBtn.classList.add('nav-active');
 
-        const titles = {
-            'scan':        'Scannen',
-            'learn':       'Lernen',
-            'list':        'Listen',
-            'deck-detail': 'Liste',
-            'goals':       'Fortschritt'
+        const titleKeys = {
+            'scan':        'view_title_scan',
+            'learn':       'view_title_learn',
+            'list':        'view_title_list',
+            'deck-detail': 'view_title_deck_detail',
+            'goals':       'view_title_goals'
         };
-        document.getElementById('header-title').textContent = titles[viewName] || 'Vocab AI';
+        document.getElementById('header-title').textContent = t(titleKeys[viewName] || 'view_title_scan');
 
-        // Back button visibility
         const backBtn = document.getElementById('header-back-btn');
         backBtn.classList.toggle('hidden', viewName !== 'deck-detail');
 
@@ -719,16 +1034,12 @@
         if (viewName === 'deck-detail') renderDeckDetail();
     }
 
-    function handleBackBtn() {
-        switchView('list');
-    }
+    function handleBackBtn() { switchView('list'); }
 
     // ══════════════════════════════════════════════
     //  Backup
     // ══════════════════════════════════════════════
-    function triggerImport() {
-        document.getElementById('backup-input').click();
-    }
+    function triggerImport() { document.getElementById('backup-input').click(); }
 
     function importData(event) {
         const file = event.target.files[0];
@@ -737,41 +1048,34 @@
         reader.onload = async function(e) {
             try {
                 const data = JSON.parse(e.target.result);
-                // Support two formats:
-                // 1. New format: array of deck objects [{ id, name, words }]
-                // 2. Legacy flat array: [{en, de}]
                 if (Array.isArray(data) && data.length > 0 && data[0].words !== undefined) {
-                    // New deck format
                     let imported = 0;
                     for (const deck of data) {
                         const existing = decks.find(d => d.id === deck.id);
-                        if (!existing) {
-                            await saveDeck(deck);
-                            imported += deck.words.length;
-                        }
+                        if (!existing) { await saveDeck(deck); imported += deck.words.length; }
                     }
                     appState.lastBackupWordCount = totalWordCount();
                     await saveState();
-                    alert(`Erfolgreich importiert! ${imported} neue Vokabeln.`);
+                    alert(t('alert_import_success')(imported));
                 } else if (Array.isArray(data) && data[0]?.en) {
-                    // Legacy flat array → add to first deck
                     const target = decks[0];
                     const existingWords = new Set(target.words.map(w => w.en.toLowerCase()));
-                    const newWords = data.filter(w => w.en && w.de && !existingWords.has(w.en.toLowerCase()))
-                                        .map(w => ({ id: Date.now() + Math.random(), en: w.en, de: w.de }));
+                    const newWords = data
+                        .filter(w => w.en && w.de && !existingWords.has(w.en.toLowerCase()))
+                        .map(w => ({ id: Date.now() + Math.random(), en: w.en, de: w.de }));
                     target.words = [...newWords, ...target.words];
                     await saveDeck(target);
                     appState.lastBackupWordCount = totalWordCount();
                     await saveState();
-                    alert(`${newWords.length} Vokabeln in "${target.name}" importiert.`);
+                    alert(t('alert_import_legacy')(newWords.length, target.name));
                 } else {
-                    alert('Unbekanntes Backup-Format.');
+                    alert(t('alert_import_unknown'));
                     return;
                 }
                 const onboarded = await dbGet(STORE_META, 'onboarded');
                 if (onboarded) switchView('list'); else finishOnboarding();
             } catch (err) {
-                alert('Fehler beim Lesen der Datei.');
+                alert(t('alert_import_error'));
             }
         };
         reader.readAsText(file);
@@ -779,14 +1083,12 @@
     }
 
     async function downloadData() {
-        if (totalWordCount() === 0) { alert('Keine Vokabeln zum Sichern.'); return; }
+        if (totalWordCount() === 0) { alert(t('alert_no_vocab_export')); return; }
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(decks, null, 2));
         const a = document.createElement('a');
         a.href = dataStr;
         a.download = `vocab_backup_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        document.body.appendChild(a); a.click(); a.remove();
         appState.lastBackupWordCount = totalWordCount();
         await saveState();
     }
@@ -805,97 +1107,63 @@
         const sel = document.getElementById('scan-target-deck');
         if (!sel) return;
         sel.innerHTML = decks.map(d =>
-            `<option value="${d.id}">${d.name} (${d.words.length} Wörter)</option>`
+            `<option value="${d.id}">${d.name} (${d.words.length} ${t('deck_words_suffix')})</option>`
         ).join('');
     }
 
-    // Hält das komprimierte Base64-Bild für den nächsten Scan-Aufruf
     let _scanImageBase64 = null;
 
-    /**
-     * Wird ausgelöst, wenn der User ein Bild aus der Galerie/Kamera wählt.
-     * Zeigt Vorschau und komprimiert das Bild auf max. 1000px Breite via Canvas.
-     */
     function handleImageSelected(event) {
         const file = event.target.files[0];
         if (!file) return;
-
-        setScanError(''); // Alten Fehler löschen
-
+        setScanError('');
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = function(e) {
             const img = new Image();
-            img.onload = function () {
-                // ── Canvas-Komprimierung ──────────────────────────
+            img.onload = function() {
                 const MAX_WIDTH = 1000;
-                let w = img.width;
-                let h = img.height;
-                if (w > MAX_WIDTH) {
-                    h = Math.round((h * MAX_WIDTH) / w);
-                    w = MAX_WIDTH;
-                }
+                let w = img.width, h = img.height;
+                if (w > MAX_WIDTH) { h = Math.round((h * MAX_WIDTH) / w); w = MAX_WIDTH; }
                 const canvas = document.createElement('canvas');
-                canvas.width  = w;
-                canvas.height = h;
+                canvas.width = w; canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-
-                // JPEG mit 85 % Qualität – guter Kompromiss aus Qualität & Kosten
                 _scanImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
 
-                // ── Vorschau anzeigen ─────────────────────────────
                 const previewImg  = document.getElementById('scan-preview-img');
                 const placeholder = document.getElementById('scan-placeholder');
                 previewImg.src = _scanImageBase64;
                 previewImg.classList.remove('hidden');
                 placeholder.classList.add('hidden');
-
-                // ── Scan-Button aktivieren ────────────────────────
                 document.getElementById('scan-btn').disabled = false;
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
-        // Input zurücksetzen, damit dasselbe Bild erneut gewählt werden kann
         event.target.value = '';
     }
 
-    /** Hilfsfunktion: Fehlermeldung im UI anzeigen / verstecken */
     function setScanError(msg) {
         const box  = document.getElementById('scan-error');
         const text = document.getElementById('scan-error-text');
         if (!box || !text) return;
-        if (msg) {
-            text.textContent = msg;
-            box.classList.remove('hidden');
-        } else {
-            box.classList.add('hidden');
-            text.textContent = '';
-        }
+        if (msg) { text.textContent = msg; box.classList.remove('hidden'); }
+        else      { box.classList.add('hidden'); text.textContent = ''; }
     }
 
-    /**
-     * Sendet das komprimierte Bild an die Serverless Function /api/scan
-     * und speichert die zurückgegebenen Vokabelpaare im gewählten Deck.
-     */
     async function startAIScan() {
-        if (!_scanImageBase64) {
-            setScanError('Bitte zuerst ein Bild auswählen.');
-            return;
-        }
+        if (!_scanImageBase64) { setScanError(t('scan_no_image')); return; }
 
         const loader     = document.getElementById('scan-loader');
         const loaderText = document.getElementById('scan-loader-text');
         const scanBtn    = document.getElementById('scan-btn');
-        setScanError('');
 
-        // ── UI: Lade-Zustand ──────────────────────────────────────
+        setScanError('');
         loader.classList.remove('hidden');
-        if (loaderText) loaderText.textContent = 'Bild wird hochgeladen…';
+        if (loaderText) loaderText.textContent = t('scan_loader_uploading');
         scanBtn.disabled = true;
 
         try {
-            // ── Schritt 1: POST an Backend ────────────────────────
-            if (loaderText) loaderText.textContent = 'KI analysiert Bild…';
+            if (loaderText) loaderText.textContent = t('scan_loader_ai');
 
             const response = await fetch('/api/scan', {
                 method: 'POST',
@@ -904,36 +1172,27 @@
             });
 
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
 
-            if (!response.ok) {
-                throw new Error(data.error || `HTTP ${response.status}`);
-            }
-
-            // ── Schritt 2: Vokabelpaare ins Deck speichern ────────
             const pairs = data.pairs;
-            if (!Array.isArray(pairs) || pairs.length === 0) {
-                throw new Error('Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.');
-            }
+            if (!Array.isArray(pairs) || pairs.length === 0) throw new Error(t('scan_no_vocab'));
 
             const sel    = document.getElementById('scan-target-deck');
             const deckId = sel ? parseInt(sel.value) : decks[0].id;
             const deck   = decks.find(d => d.id === deckId) || decks[0];
 
-            // Konvertiere {front, back} → {id, en, de}
             const newWords = pairs.map((p, i) => ({
                 id: Date.now() + i,
                 en: (p.front || '').trim(),
                 de: (p.back  || '').trim(),
-            })).filter(w => w.en && w.de); // Leere Paare herausfiltern
+            })).filter(w => w.en && w.de);
 
             deck.words = [...deck.words, ...newWords];
             await saveDeck(deck);
             await saveState();
 
-            // ── Schritt 3: Erfolg → Deck-Detail anzeigen ─────────
             loader.classList.add('hidden');
-            _scanImageBase64 = null; // Bild-Cache leeren
-            // Vorschau zurücksetzen
+            _scanImageBase64 = null;
             const previewImg  = document.getElementById('scan-preview-img');
             const placeholder = document.getElementById('scan-placeholder');
             if (previewImg)  { previewImg.src = ''; previewImg.classList.add('hidden'); }
@@ -944,10 +1203,10 @@
             switchView('deck-detail');
 
         } catch (err) {
-            console.error('KI-Scan Fehler:', err);
+            console.error('AI scan error:', err);
             loader.classList.add('hidden');
             scanBtn.disabled = false;
-            setScanError(err.message || 'Unbekannter Fehler. Bitte erneut versuchen.');
+            setScanError(err.message || t('scan_no_vocab'));
         }
     }
 
@@ -960,26 +1219,29 @@
         container.innerHTML = '';
 
         if (decks.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted mt-10 text-sm">Noch keine Listen vorhanden.</p>';
+            container.innerHTML = `<p class="text-center text-muted mt-10 text-sm">${t('list_empty')}</p>`;
             return;
         }
 
         decks.forEach(deck => {
+            const wSuffix = deck.words.length === 1
+                ? t('detail_vocab_count_singular')
+                : t('detail_vocab_count_plural');
             const item = document.createElement('div');
             item.className = 'deck-item bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center cursor-pointer';
             item.innerHTML = `
                 <div onclick="openDeckDetail(${deck.id})" class="flex-1 min-w-0">
                     <p class="font-bold text-base truncate">${escapeHtml(deck.name)}</p>
-                    <p class="text-muted text-xs mt-1">${deck.words.length} Vokabel${deck.words.length !== 1 ? 'n' : ''}</p>
+                    <p class="text-muted text-xs mt-1">${deck.words.length} ${wSuffix}</p>
                 </div>
                 <div class="flex gap-3 items-center ml-3 flex-shrink-0">
-                    <button onclick="event.stopPropagation(); openDeckDetail(${deck.id})" class="accent-text text-sm" title="Öffnen">
+                    <button onclick="event.stopPropagation(); openDeckDetail(${deck.id})" class="accent-text text-sm">
                         <i class="fa-solid fa-chevron-right"></i>
                     </button>
-                    <button onclick="event.stopPropagation(); renameDeck(${deck.id})" class="text-muted hover:accent-text transition text-sm" title="Umbenennen">
+                    <button onclick="event.stopPropagation(); renameDeck(${deck.id})" class="text-muted hover:accent-text transition text-sm">
                         <i class="fa-solid fa-pen"></i>
                     </button>
-                    <button onclick="event.stopPropagation(); confirmDeleteDeck(${deck.id})" class="text-muted hover:text-red-500 transition text-sm" title="Löschen">
+                    <button onclick="event.stopPropagation(); confirmDeleteDeck(${deck.id})" class="text-muted hover:text-red-500 transition text-sm">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </div>
@@ -989,7 +1251,7 @@
     }
 
     async function createNewDeck() {
-        const name = prompt('Name der neuen Liste:');
+        const name = prompt(t('prompt_new_deck'));
         if (!name || !name.trim()) return;
         const deck = { id: Date.now(), name: name.trim(), words: [] };
         await saveDeck(deck);
@@ -1000,7 +1262,7 @@
     async function renameDeck(deckId) {
         const deck = decks.find(d => d.id === deckId);
         if (!deck) return;
-        const name = prompt('Neuer Name:', deck.name);
+        const name = prompt(t('prompt_rename_deck'), deck.name);
         if (!name || !name.trim()) return;
         deck.name = name.trim();
         await saveDeck(deck);
@@ -1011,8 +1273,8 @@
     async function confirmDeleteDeck(deckId) {
         const deck = decks.find(d => d.id === deckId);
         if (!deck) return;
-        if (decks.length === 1) { alert('Du kannst die letzte Liste nicht löschen.'); return; }
-        if (!confirm(`Liste "${deck.name}" mit ${deck.words.length} Vokabeln löschen?`)) return;
+        if (decks.length === 1) { alert(t('alert_last_deck')); return; }
+        if (!confirm(t('confirm_delete_deck')(deck.name, deck.words.length))) return;
         await deleteDeck(deckId);
         renderDeckOverview();
         populateScanDeckSelector();
@@ -1030,14 +1292,17 @@
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) { switchView('list'); return; }
 
+        const wSuffix = deck.words.length === 1
+            ? t('detail_vocab_count_singular')
+            : t('detail_vocab_count_plural');
         document.getElementById('deck-detail-title').textContent = deck.name;
-        document.getElementById('deck-detail-count').textContent = `${deck.words.length} Vokabeln`;
+        document.getElementById('deck-detail-count').textContent = `${deck.words.length} ${wSuffix}`;
 
         const container = document.getElementById('vocab-list');
         container.innerHTML = '';
 
         if (deck.words.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted mt-8 text-sm">Noch leer. Füge Vokabeln hinzu.</p>';
+            container.innerHTML = `<p class="text-center text-muted mt-8 text-sm">${t('detail_empty')}</p>`;
             return;
         }
 
@@ -1061,9 +1326,9 @@
     async function addManualVocab() {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
-        const en = prompt('Vorderseite (z.B. Spanisch):');
+        const en = prompt(t('prompt_vocab_front'));
         if (!en) return;
-        const de = prompt('Rückseite (z.B. Deutsch):');
+        const de = prompt(t('prompt_vocab_back'));
         if (!de) return;
         deck.words.unshift({ id: Date.now(), en: en.trim(), de: de.trim() });
         await saveDeck(deck);
@@ -1073,10 +1338,10 @@
     async function editVocab(idx) {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
-        const w = deck.words[idx];
-        const en = prompt('Vorderseite:', w.en);
+        const w  = deck.words[idx];
+        const en = prompt(t('prompt_vocab_front_edit'), w.en);
         if (en === null) return;
-        const de = prompt('Rückseite:', w.de);
+        const de = prompt(t('prompt_vocab_back_edit'), w.de);
         if (de === null) return;
         deck.words[idx] = { ...w, en: en.trim(), de: de.trim() };
         await saveDeck(deck);
@@ -1086,7 +1351,7 @@
     async function deleteVocab(idx) {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) return;
-        if (!confirm('Wirklich löschen?')) return;
+        if (!confirm(t('confirm_delete_vocab'))) return;
         deck.words.splice(idx, 1);
         await saveDeck(deck);
         renderDeckDetail();
@@ -1099,19 +1364,17 @@
         const selector = document.getElementById('learn-deck-selector');
         const session  = document.getElementById('learn-session');
 
-        // If only one deck and it has words, jump straight in
         const decksWithWords = decks.filter(d => d.words.length > 0);
-        if (decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) {
-            const autoId = appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0)
+        if (
+            decksWithWords.length === 1 ||
+            (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))
+        ) {
+            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))
                 ? appState.lastLearnDeckId
                 : decksWithWords[0]?.id;
-            if (autoId) {
-                startLearnSession(autoId);
-                return;
-            }
+            if (autoId) { startLearnSession(autoId); return; }
         }
 
-        // Show deck picker
         selector.classList.remove('hidden');
         session.classList.add('hidden');
 
@@ -1119,16 +1382,15 @@
         list.innerHTML = '';
 
         if (decksWithWords.length === 0) {
-            list.innerHTML = '<p class="text-center text-muted text-sm">Noch keine Vokabeln. Gehe zu Scannen.</p>';
+            list.innerHTML = `<p class="text-center text-muted text-sm">${t('learn_no_vocab_empty')}</p>`;
             return;
         }
 
-        // "All" option
         if (decksWithWords.length > 1) {
             const allBtn = document.createElement('button');
             allBtn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center accent-text font-bold text-sm';
-            const total = decksWithWords.reduce((s,d) => s + d.words.length, 0);
-            allBtn.innerHTML = `<span>🗂 Alle Listen</span><span class="text-muted font-normal">${total} Wörter</span>`;
+            const total = decksWithWords.reduce((s, d) => s + d.words.length, 0);
+            allBtn.innerHTML = `<span>${t('learn_all_lists')}</span><span class="text-muted font-normal">${total} ${t('learn_words_suffix')}</span>`;
             allBtn.onclick = () => startLearnSession('all');
             list.appendChild(allBtn);
         }
@@ -1136,19 +1398,18 @@
         decksWithWords.forEach(d => {
             const btn = document.createElement('button');
             btn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center text-sm';
-            btn.innerHTML = `<span class="font-semibold">${escapeHtml(d.name)}</span><span class="text-muted">${d.words.length} Wörter <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>`;
+            btn.innerHTML = `<span class="font-semibold">${escapeHtml(d.name)}</span><span class="text-muted">${d.words.length} ${t('learn_words_suffix')} <i class="fa-solid fa-chevron-right ml-1 text-xs"></i></span>`;
             btn.onclick = () => startLearnSession(d.id);
             list.appendChild(btn);
         });
     }
 
     async function startLearnSession(deckIdOrAll) {
-        let words = [];
-        let label = '';
+        let words = [], label = '';
 
         if (deckIdOrAll === 'all') {
             words = decks.flatMap(d => d.words);
-            label = 'Alle Listen';
+            label = t('learn_all_lists');
             currentLearnDeck = null;
         } else {
             const deck = decks.find(d => d.id === deckIdOrAll);
@@ -1165,9 +1426,7 @@
         document.getElementById('learn-session').classList.remove('hidden');
 
         currentCardIndex = 0;
-        isCardFlipped = false;
-
-        // Attach words to session state
+        isCardFlipped    = false;
         window._learnWords = words;
         updateLearnCounter();
         renderFlashcard();
@@ -1187,15 +1446,16 @@
     }
 
     function renderFlashcard() {
-        const container   = document.getElementById('flashcard-container');
-        const actionBtns  = document.getElementById('learn-actions');
+        const container  = document.getElementById('flashcard-container');
+        const actionBtns = document.getElementById('learn-actions');
         if (!container) return;
 
         const words = window._learnWords || [];
         if (words.length === 0) {
+            const parts = t('learn_no_vocab').split('\n');
             container.innerHTML = `
                 <div class="w-full h-full flex items-center justify-center bg-card rounded-3xl border border-subtle p-8 text-center" style="min-height:200px">
-                    <p class="text-muted">Keine Vokabeln in dieser Liste.<br>Gehe zu <strong>Scannen</strong>.</p>
+                    <p class="text-muted">${parts[0]}<br>${parts[1] ? `<strong>${parts[1]}</strong>` : ''}</p>
                 </div>`;
             if (actionBtns) { actionBtns.style.opacity='0'; actionBtns.style.pointerEvents='none'; }
             return;
@@ -1205,19 +1465,19 @@
         container.innerHTML = `
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
                 <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-8 text-center">
-                    <span class="absolute top-4 left-4 text-xs font-bold text-muted">Vorderseite</span>
+                    <span class="absolute top-4 left-4 text-xs font-bold text-muted">${t('learn_front')}</span>
                     <h2 class="text-4xl font-bold">${escapeHtml(word.en)}</h2>
-                    <p class="mt-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>Tippen zum Drehen</p>
+                    <p class="mt-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
                 <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-8 text-center text-white">
-                    <span class="absolute top-4 left-4 text-xs font-bold text-white/60">Rückseite</span>
+                    <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${t('learn_back')}</span>
                     <h2 class="text-3xl font-bold">${escapeHtml(word.de)}</h2>
                 </div>
             </div>`;
 
         const card = document.getElementById('flashcard');
         card.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
-        card.addEventListener('touchend',   e => { touchEndX = e.changedTouches[0].screenX; handleSwipe(); }, false);
+        card.addEventListener('touchend',   e => { touchEndX   = e.changedTouches[0].screenX; handleSwipe(); }, false);
 
         isCardFlipped = false;
         if (actionBtns) { actionBtns.style.opacity='0'; actionBtns.style.pointerEvents='none'; }
@@ -1245,11 +1505,9 @@
     function nextCard(dir = 'left') {
         const words = window._learnWords || [];
         if (words.length <= 1) { renderFlashcard(); return; }
-
         const card = document.getElementById('flashcard');
         if (!card) return;
         card.classList.add(dir === 'left' ? 'swipe-left' : 'swipe-right');
-
         setTimeout(() => {
             currentCardIndex = dir === 'left'
                 ? (currentCardIndex + 1) % words.length
@@ -1260,9 +1518,9 @@
     }
 
     function handleSwipe() {
-        const t = 50;
-        if (touchEndX < touchStartX - t) nextCard('left');
-        if (touchEndX > touchStartX + t) nextCard('right');
+        const t50 = 50;
+        if (touchEndX < touchStartX - t50) nextCard('left');
+        if (touchEndX > touchStartX + t50) nextCard('right');
     }
 
     // ══════════════════════════════════════════════
@@ -1293,7 +1551,7 @@
     }
 
     function setDailyGoal() {
-        const v = prompt('Tagesziel (Anzahl Karten):', appState.dailyGoal);
+        const v = prompt(t('prompt_daily_goal'), appState.dailyGoal);
         if (v && !isNaN(v)) { appState.dailyGoal = parseInt(v, 10); saveState(); }
     }
 
@@ -1302,7 +1560,7 @@
         const el2 = document.getElementById('goal-text');
         const el3 = document.getElementById('goal-progress');
         if (el1) el1.textContent = appState.streak;
-        if (el2) el2.textContent = `${appState.learnedToday} / ${appState.dailyGoal} Karten gelernt`;
+        if (el2) el2.textContent = `${appState.learnedToday} / ${appState.dailyGoal} ${t('goals_cards_learned')}`;
         if (el3) el3.style.width = `${Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100)}%`;
     }
 
