@@ -172,14 +172,14 @@
             <h1 class="text-lg font-bold tracking-tight" id="header-title">Flashcard-AI</h1>
         </div>
         <div class="flex gap-3 items-center">
-            <button onclick="openSettingsModal()" class="text-muted hover:accent-text transition" title="Einstellungen">
-                <i class="fa-solid fa-sliders text-lg"></i>
-            </button>
             <button onclick="triggerImport()" class="text-muted hover:accent-text transition" title="Backup importieren">
                 <i class="fa-solid fa-upload text-lg"></i>
             </button>
             <button onclick="downloadData()" class="text-muted hover:accent-text transition" title="Backup exportieren">
                 <i class="fa-solid fa-download text-lg"></i>
+            </button>
+            <button onclick="openSettingsModal()" class="text-muted hover:accent-text transition" title="Einstellungen">
+                <i class="fa-solid fa-sliders text-lg"></i>
             </button>
         </div>
     </header>
@@ -295,8 +295,8 @@
                 <div class="w-16 h-16 accent-bg rounded-2xl flex items-center justify-center mb-6 accent-shadow">
                     <i class="fa-solid fa-layer-group text-white text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold mb-2">Welches Deck lernen?</h3>
-                <p class="text-sm text-muted mb-6 text-center">Wähle ein Deck oder lerne aus allen Vokabeln.</p>
+                <h3 class="text-xl font-bold mb-2">Welche Liste lernen?</h3>
+                <p class="text-sm text-muted mb-6 text-center">Wähle eine Liste oder lerne aus allen Wortpaaren.</p>
                 <div id="learn-deck-list" class="w-full max-w-sm space-y-3"></div>
             </div>
 
@@ -304,7 +304,7 @@
             <div id="learn-session" class="hidden flex flex-col h-full">
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm">
-                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium">Decks</span>
+                        <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium">Listen</span>
                     </button>
                     <span id="learn-counter" class="text-sm font-bold accent-light accent-text py-1 px-3 rounded-full">0 / 20</span>
                 </div>
