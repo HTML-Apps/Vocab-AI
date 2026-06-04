@@ -242,19 +242,49 @@
                 </select>
             </div>
 
+            <!-- Hidden file input: capture=environment öffnet direkt die Kamera auf Mobilgeräten -->
+            <input type="file" id="scan-file-input" class="hidden"
+                   accept="image/*" capture="environment"
+                   onchange="handleImageSelected(event)">
+
             <div class="flex-1 flex flex-col justify-center items-center">
-                <div class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm">
-                    <i class="fa-solid fa-camera text-5xl text-muted mb-4"></i>
-                    <p class="text-sm text-muted">Dokument scannen oder hochladen</p>
-                    <div id="scan-loader" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center hidden backdrop-blur-sm">
+                <!-- Preview area – Klick öffnet Datei-/Kameradialog -->
+                <div id="scan-preview-area"
+                     class="w-full aspect-square max-h-64 rounded-3xl border-2 border-dashed border-subtle flex flex-col items-center justify-center p-6 text-center mb-6 relative overflow-hidden bg-card shadow-sm cursor-pointer active:scale-98 transition-transform"
+                     onclick="document.getElementById('scan-file-input').click()">
+                    <!-- Placeholder (sichtbar wenn kein Bild gewählt) -->
+                    <div id="scan-placeholder" class="flex flex-col items-center">
+                        <i class="fa-solid fa-camera text-5xl text-muted mb-4"></i>
+                        <p class="text-sm text-muted font-medium">Foto aufnehmen oder hochladen</p>
+                        <p class="text-xs text-muted mt-1 opacity-60">Tippe hier</p>
+                    </div>
+                    <!-- Bildvorschau (versteckt bis Bild gewählt) -->
+                    <img id="scan-preview-img" src="" alt="Vorschau"
+                         class="hidden absolute inset-0 w-full h-full object-contain rounded-3xl">
+                    <!-- Loader-Overlay -->
+                    <div id="scan-loader" class="absolute inset-0 bg-white/90 dark:bg-slate-800/90 flex flex-col items-center justify-center hidden backdrop-blur-sm rounded-3xl">
                         <i class="fa-solid fa-circle-notch fa-spin accent-text text-4xl mb-4"></i>
-                        <p class="text-sm font-medium animate-pulse">KI analysiert Text…</p>
+                        <p class="text-sm font-medium animate-pulse" id="scan-loader-text">KI analysiert Text…</p>
                     </div>
                 </div>
 
-                <button onclick="simulateAIScan()" class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Mit KI scannen
-                </button>
+                <!-- Fehleranzeige -->
+                <div id="scan-error" class="hidden w-full mb-4 bg-red-500/10 border border-red-400/40 text-red-500 dark:text-red-400 rounded-2xl p-3 text-xs flex items-start gap-2">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
+                    <span id="scan-error-text"></span>
+                </div>
+
+                <!-- Zwei Buttons: Bild wählen + Scan starten -->
+                <div class="w-full flex flex-col gap-3">
+                    <button onclick="document.getElementById('scan-file-input').click()"
+                            class="w-full border accent-border accent-text py-3 rounded-2xl font-semibold hover:accent-light transition flex justify-center items-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-image"></i> Bild wählen / Kamera
+                    </button>
+                    <button id="scan-btn" onclick="startAIScan()" disabled
+                            class="w-full accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95 flex justify-center items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Mit KI scannen
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -779,28 +809,146 @@
         ).join('');
     }
 
-    async function simulateAIScan() {
-        const loader = document.getElementById('scan-loader');
+    // Hält das komprimierte Base64-Bild für den nächsten Scan-Aufruf
+    let _scanImageBase64 = null;
+
+    /**
+     * Wird ausgelöst, wenn der User ein Bild aus der Galerie/Kamera wählt.
+     * Zeigt Vorschau und komprimiert das Bild auf max. 1000px Breite via Canvas.
+     */
+    function handleImageSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        setScanError(''); // Alten Fehler löschen
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                // ── Canvas-Komprimierung ──────────────────────────
+                const MAX_WIDTH = 1000;
+                let w = img.width;
+                let h = img.height;
+                if (w > MAX_WIDTH) {
+                    h = Math.round((h * MAX_WIDTH) / w);
+                    w = MAX_WIDTH;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width  = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+                // JPEG mit 85 % Qualität – guter Kompromiss aus Qualität & Kosten
+                _scanImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+                // ── Vorschau anzeigen ─────────────────────────────
+                const previewImg  = document.getElementById('scan-preview-img');
+                const placeholder = document.getElementById('scan-placeholder');
+                previewImg.src = _scanImageBase64;
+                previewImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+
+                // ── Scan-Button aktivieren ────────────────────────
+                document.getElementById('scan-btn').disabled = false;
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+        // Input zurücksetzen, damit dasselbe Bild erneut gewählt werden kann
+        event.target.value = '';
+    }
+
+    /** Hilfsfunktion: Fehlermeldung im UI anzeigen / verstecken */
+    function setScanError(msg) {
+        const box  = document.getElementById('scan-error');
+        const text = document.getElementById('scan-error-text');
+        if (!box || !text) return;
+        if (msg) {
+            text.textContent = msg;
+            box.classList.remove('hidden');
+        } else {
+            box.classList.add('hidden');
+            text.textContent = '';
+        }
+    }
+
+    /**
+     * Sendet das komprimierte Bild an die Serverless Function /api/scan
+     * und speichert die zurückgegebenen Vokabelpaare im gewählten Deck.
+     */
+    async function startAIScan() {
+        if (!_scanImageBase64) {
+            setScanError('Bitte zuerst ein Bild auswählen.');
+            return;
+        }
+
+        const loader     = document.getElementById('scan-loader');
+        const loaderText = document.getElementById('scan-loader-text');
+        const scanBtn    = document.getElementById('scan-btn');
+        setScanError('');
+
+        // ── UI: Lade-Zustand ──────────────────────────────────────
         loader.classList.remove('hidden');
+        if (loaderText) loaderText.textContent = 'Bild wird hochgeladen…';
+        scanBtn.disabled = true;
 
-        await new Promise(r => setTimeout(r, 1800));
-        loader.classList.add('hidden');
+        try {
+            // ── Schritt 1: POST an Backend ────────────────────────
+            if (loaderText) loaderText.textContent = 'KI analysiert Bild…';
 
-        const sel = document.getElementById('scan-target-deck');
-        const deckId = sel ? parseInt(sel.value) : decks[0].id;
-        const deck = decks.find(d => d.id === deckId) || decks[0];
+            const response = await fetch('/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: _scanImageBase64 }),
+            });
 
-        const dummy = [
-            { id: Date.now(),   en: 'rational',    de: 'rational / vernünftig' },
-            { id: Date.now()+1, en: 'progressive', de: 'fortschrittlich'       },
-            { id: Date.now()+2, en: 'efficiency',  de: 'Effizienz'             },
-            { id: Date.now()+3, en: 'minimalist',  de: 'minimalistisch'        }
-        ];
-        deck.words = [...deck.words, ...dummy];
-        await saveDeck(deck);
-        await saveState();
-        currentDetailDeckId = deck.id;
-        switchView('deck-detail');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP ${response.status}`);
+            }
+
+            // ── Schritt 2: Vokabelpaare ins Deck speichern ────────
+            const pairs = data.pairs;
+            if (!Array.isArray(pairs) || pairs.length === 0) {
+                throw new Error('Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.');
+            }
+
+            const sel    = document.getElementById('scan-target-deck');
+            const deckId = sel ? parseInt(sel.value) : decks[0].id;
+            const deck   = decks.find(d => d.id === deckId) || decks[0];
+
+            // Konvertiere {front, back} → {id, en, de}
+            const newWords = pairs.map((p, i) => ({
+                id: Date.now() + i,
+                en: (p.front || '').trim(),
+                de: (p.back  || '').trim(),
+            })).filter(w => w.en && w.de); // Leere Paare herausfiltern
+
+            deck.words = [...deck.words, ...newWords];
+            await saveDeck(deck);
+            await saveState();
+
+            // ── Schritt 3: Erfolg → Deck-Detail anzeigen ─────────
+            loader.classList.add('hidden');
+            _scanImageBase64 = null; // Bild-Cache leeren
+            // Vorschau zurücksetzen
+            const previewImg  = document.getElementById('scan-preview-img');
+            const placeholder = document.getElementById('scan-placeholder');
+            if (previewImg)  { previewImg.src = ''; previewImg.classList.add('hidden'); }
+            if (placeholder) { placeholder.classList.remove('hidden'); }
+            scanBtn.disabled = true;
+
+            currentDetailDeckId = deck.id;
+            switchView('deck-detail');
+
+        } catch (err) {
+            console.error('KI-Scan Fehler:', err);
+            loader.classList.add('hidden');
+            scanBtn.disabled = false;
+            setScanError(err.message || 'Unbekannter Fehler. Bitte erneut versuchen.');
+        }
     }
 
     // ══════════════════════════════════════════════
