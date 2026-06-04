@@ -1,8 +1,8 @@
-const CACHE_NAME = "Vocab-AI_v1";
+const CACHE_NAME = "Flashcard-AI_v1";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
-  "./pokal.png"
+  "./brain.png"
 ];
 
 // 1. Installieren: Dateien in den Cache laden
