@@ -558,6 +558,7 @@
             learn_no_vocab:      'Keine wortpaare in dieser Liste.\nGehe zu Scannen.',
             learn_no_vocab_empty:'Noch keine Wortpaare. Gehe zu Scannen.',
             learn_all_lists:     '🗂 Alle Listen',
+            learn_difficult:     'Schwierige Wortpaare',
             learn_words_suffix:  'Wörter',
             learn_front:         'Vorderseite',
             learn_back:          'Rückseite',
@@ -651,6 +652,7 @@
             learn_no_vocab:      'No word pairs in this list.\nGo to Scan.',
             learn_no_vocab_empty:'No word pairs yet. Go to Scan.',
             learn_all_lists:     '🗂 All Lists',
+            learn_difficult:     'Difficult Word Pairs',
             learn_words_suffix:  'words',
             learn_front:         'Front',
             learn_back:          'Back',
@@ -845,7 +847,8 @@
         accent:              'indigo',
         lastBackupWordCount: 0,
         lastLearnDeckId:     null,
-        scanCount:           0
+        scanCount:           0,
+        difficultPairs:      []
     };
 
     let decks = [];
@@ -1466,7 +1469,7 @@
         const session  = document.getElementById('learn-session');
         const decksWithWords = decks.filter(d => d.words.length > 0);
 
-        if (decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) {
+        if ((decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) && (appState.difficultPairs || []).length === 0) {
             const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0)) ? appState.lastLearnDeckId : decksWithWords[0]?.id;
             if (autoId) { startLearnSession(autoId); return; }
         }
@@ -1491,6 +1494,16 @@
             list.appendChild(allBtn);
         }
 
+        // Schwierige Wortpaare Button
+        const difficultPairs = appState.difficultPairs || [];
+        if (difficultPairs.length > 0) {
+            const diffBtn = document.createElement('button');
+            diffBtn.className = 'w-full bg-card border border-red-400/40 rounded-2xl p-4 flex justify-between items-center text-red-500 dark:text-red-400 font-bold text-sm';
+            diffBtn.innerHTML = `<span><i class="fa-solid fa-brake-warning mr-2"></i>${t('learn_difficult')}</span><span class="font-normal opacity-70">${difficultPairs.length} ${t('learn_words_suffix')}</span>`;
+            diffBtn.onclick = () => startLearnSession('difficult');
+            list.appendChild(diffBtn);
+        }
+
         decksWithWords.forEach(d => {
             const btn = document.createElement('button');
             btn.className = 'w-full bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center text-sm';
@@ -1505,6 +1518,10 @@
         if (deckIdOrAll === 'all') {
             words = decks.flatMap(d => d.words);
             label = t('learn_all_lists');
+            currentLearnDeck = null;
+        } else if (deckIdOrAll === 'difficult') {
+            words = (appState.difficultPairs || []).map(p => ({ id: p.id, front: p.front, back: p.back }));
+            label = t('learn_difficult');
             currentLearnDeck = null;
         } else {
             const deck = decks.find(d => d.id === deckIdOrAll);
@@ -1612,7 +1629,27 @@
     }
 
     function handleCardResult(type) {
-        if (type === 'known') incrementGoal();
+        if (type === 'known') {
+            incrementGoal();
+            // Aus difficultPairs entfernen, falls vorhanden
+            const words = window._learnWords || [];
+            const word = words[currentCardIndex];
+            if (word) {
+                appState.difficultPairs = (appState.difficultPairs || []).filter(p => p.id !== word.id);
+                saveState();
+            }
+        } else if (type === 'repeat') {
+            // Wortpaar in difficultPairs aufnehmen (kein Duplikat)
+            const words = window._learnWords || [];
+            const word = words[currentCardIndex];
+            if (word) {
+                const already = (appState.difficultPairs || []).some(p => p.id === word.id);
+                if (!already) {
+                    appState.difficultPairs = [...(appState.difficultPairs || []), { id: word.id, front: word.front, back: word.back }];
+                    saveState();
+                }
+            }
+        }
         nextCard('left');
     }
 
