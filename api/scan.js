@@ -1,6 +1,6 @@
 // /api/scan.js  –  Vercel Serverless Function (Node.js)
-// Empfängt ein Base64-Bild, prüft den Lemon Squeezy Lizenzschlüssel,
-// ruft OpenAI gpt-4o-mini auf, zählt die Scans in Vercel KV (Upstash) herunter
+// BYPASS-MODUS AKTIV: Lizenzprüfung ist temporär ausgesetzt.
+// Empfängt ein Base64-Bild, ruft OpenAI gpt-4o-mini auf 
 // und gibt ein JSON-Array mit Vokabelpaaren zurück.
 
 export const config = {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   // ── CORS-Header (wichtig für lokale Entwicklung) ──────────────────
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // WICHTIG: Authorization erlaubt!
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -32,12 +32,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server-Konfigurationsfehler: API-Key fehlt.' });
   }
 
-    // ── BYPASS AKTIVIERT: LIZENZPRÜFUNG TEMPORÄR AUSGESETZT ────────────────────────
-
-    // Wir überspringen Lemon Squeezy und Upstash komplett.
-    // Das Backend nimmt einfach das Bild an und schickt es an OpenAI.
-    // (Entferne diesen Bypass, bevor du live gehst!)
-
+  try {
+    // ── BYPASS AKTIVIERT: LIZENZPRÜFUNG TEMPORÄR AUSGESETZT ────────────
+    // Wir ignorieren Upstash und Lemon Squeezy hier komplett.
 
     // ── 3. REQUEST-BODY LESEN (BILD) ──────────────────────────────────
     const { image } = req.body;
@@ -104,17 +101,11 @@ export default async function handler(req, res) {
       return res.status(422).json({ error: 'Die KI hat kein gültiges JSON zurückgegeben.', raw: rawContent });
     }
 
-    // ── 5. SCAN ABZIEHEN (NUR WENN ALLES ERFOLGREICH WAR) ─────────────
-    const decrRes = await fetch(`${kvUrl}/decr/license:${licenseKey}`, {
-      headers: { Authorization: `Bearer ${kvToken}` }
-    });
-    const decrData = await decrRes.json();
-    const remainingScans = decrData.result; // Wie viele Scans noch übrig sind
-
     // ── 6. ERFOLG: ANTWORT ANS FRONTEND ───────────────────────────────
+    // Im Bypass-Modus geben wir einfach einen Dummy-Wert für remaining_scans zurück
     return res.status(200).json({ 
       pairs: vocabPairs,
-      remaining_scans: remainingScans 
+      remaining_scans: "Bypass Mode" 
     });
 
   } catch (err) {
