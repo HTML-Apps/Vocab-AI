@@ -460,6 +460,17 @@
                     <span id="theme-label"></span>
                 </button>
             </div>
+
+
+            <div class="py-4 border-b border-subtle">
+                <label class="font-medium text-sm mb-2 block">Lizenzschlüssel (Lemon Squeezy)</label>
+                <div class="flex gap-2">
+                    <input type="text" id="license-key-input" placeholder="z.B. FOCS-ABCD-1234" class="w-full bg-slate-100 dark:bg-slate-800 border border-subtle rounded-xl px-4 py-3 text-sm font-medium focus:outline-none accent-ring" onchange="saveLicenseKey()">
+                </div>
+                <p class="text-xs text-muted mt-2">Wird für KI-Scans benötigt. <a href="https://focus-flashcards.app/#buy" target="_blank" class="accent-text underline">Hier kaufen</a></p>
+            </div>
+
+
             <div class="py-4 border-b border-subtle">
                 <p class="font-medium text-sm mb-3" data-i18n="settings_accent"></p>
                 <div class="flex gap-4 items-center">
@@ -976,6 +987,13 @@
         });
     }
 
+    function saveLicenseKey() {
+        const input = document.getElementById('license-key-input');
+        if (input) {
+            localStorage.setItem('focus_license_key', input.value.trim());
+        }
+    }
+
     function openSettingsModal() {
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
@@ -983,9 +1001,16 @@
         _updateLangButtons(currentLang);
         const scanCountEl = document.getElementById('settings-scan-count');
         if (scanCountEl) scanCountEl.textContent = `${appState.scanCount || 0} / 200`;
+
+        // NEU: Lizenzschlüssel laden
+        const savedKey = localStorage.getItem('focus_license_key');
+        if (savedKey) {
+            document.getElementById('license-key-input').value = savedKey;
+        }
     }
     function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
     function closeSettingsOnBackdrop(e) { if (e.target === document.getElementById('settings-modal')) closeSettingsModal(); }
+
 
     function showMainUI() {
         document.getElementById('view-onboarding').classList.add('hidden');
@@ -1157,6 +1182,14 @@
     async function startAIScan() {
         if (!_scanImageBase64) { setScanError(t('scan_no_image')); return; }
 
+        // NEU: Lizenzschlüssel prüfen
+        const licenseKey = localStorage.getItem('focus_license_key');
+        if (!licenseKey) {
+            setScanError(currentLang === 'de' ? "Bitte gib deinen Lizenzschlüssel in den Einstellungen ein." : "Please enter your license key in settings.");
+            openSettingsModal(); // Öffnet direkt die Einstellungen
+            return;
+        }
+
         const loader     = document.getElementById('scan-loader');
         const loaderText = document.getElementById('scan-loader-text');
         const scanBtn    = document.getElementById('scan-btn');
@@ -1171,7 +1204,11 @@
 
             const response = await fetch('/api/scan', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                // NEU: Authorization Header hinzugefügt
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${licenseKey}`
+                },
                 body: JSON.stringify({ image: _scanImageBase64 }),
             });
 
@@ -1198,7 +1235,7 @@
             if (placeholder) { placeholder.classList.remove('hidden'); }
             scanBtn.disabled = true;
 
-            // Vorschau-Modul aufrufen anstatt direkt zu speichern
+            // Vorschau-Modul aufrufen
             appState.scanCount = (appState.scanCount || 0) + 1;
             await saveState();
             renderScanPreview();
@@ -1211,6 +1248,7 @@
             setScanError(err.message || t('scan_no_vocab'));
         }
     }
+
 
     // ── Vorschau Modal Funktionen ──
     function renderScanPreview() {
