@@ -1499,7 +1499,7 @@
         if (difficultPairs.length > 0) {
             const diffBtn = document.createElement('button');
             diffBtn.className = 'w-full bg-card border border-red-400/40 rounded-2xl p-4 flex justify-between items-center text-red-500 dark:text-red-400 font-bold text-sm';
-            diffBtn.innerHTML = `<span><i class="fa-solid fa-brake-warning mr-2"></i>${t('learn_difficult')}</span><span class="font-normal opacity-70">${difficultPairs.length} ${t('learn_words_suffix')}</span>`;
+            diffBtn.innerHTML = `<span><i class="fa-solid fa-brake-warning mr-0"></i>${t('learn_difficult')}</span><span class="font-normal opacity-70">${difficultPairs.length} ${t('learn_words_suffix')}</span>`;
             diffBtn.onclick = () => startLearnSession('difficult');
             list.appendChild(diffBtn);
         }
