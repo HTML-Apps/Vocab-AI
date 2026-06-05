@@ -87,12 +87,6 @@
         .accent-ring:focus { outline: 2px solid var(--color-primary); outline-offset: 2px; }
         .nav-active    { color: var(--color-primary) !important; }
 
-        .mode-active {
-            color: var(--color-primary) !important;
-            border-color: var(--color-primary) !important;
-            background-color: var(--color-primary-light) !important;
-        }
-
         /* ── Light/Dark surface colors ── */
         .bg-surface   { background-color: #f1f5f9; }
         .dark .bg-surface { background-color: #000000; }
@@ -189,6 +183,14 @@
             cursor: pointer; transition: background 0.15s;
         }
         .lang-toggle-btn:hover { background: var(--color-primary-light); }
+
+        /* ── Learn-mode active button ── */
+        .learn-mode-btn { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+        .learn-mode-btn.active {
+            background-color: var(--color-primary) !important;
+            color: #fff !important;
+            border-color: var(--color-primary) !important;
+        }
     </style>
 </head>
 
@@ -270,9 +272,13 @@
         <!-- ─── View: Scan ─── -->
         <section id="view-scan" class="view hidden flex flex-col px-5 pt-4 pb-4 min-h-full">
             <div id="backup-warning" class="w-full mb-4 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-2xl p-3 text-xs flex justify-between items-center hidden">
-                <span class="flex-1"><i class="fa-solid fa-triangle-exclamation mr-2"></i><span data-i18n="backup_warning"></span></span>
-                <button onclick="downloadData()" class="underline font-bold whitespace-nowrap" data-i18n="backup_save"></button>
-                <button onclick="dismissBackupWarning()" class="ml-3 text-lg opacity-70 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+                <span><i class="fa-solid fa-triangle-exclamation mr-2"></i><span data-i18n="backup_warning"></span></span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button onclick="downloadData()" class="underline font-bold ml-2 whitespace-nowrap" data-i18n="backup_save"></button>
+                    <button onclick="dismissBackupWarning()" class="ml-1 text-amber-600 dark:text-amber-400 hover:opacity-70 transition text-base leading-none font-bold" title="Schließen">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="mb-4">
@@ -333,16 +339,16 @@
             </div>
 
             <div id="learn-session" class="hidden flex flex-col h-full">
-                <!-- Buttons für Chronologisch, Zufall und Richtung -->
+                <!-- Neue Buttons für Chronologisch, Zufall und Richtung -->
                 <div class="flex justify-between items-center mb-4 flex-shrink-0">
                     <button onclick="exitLearnSession()" class="text-muted hover:accent-text transition flex items-center gap-1 text-sm truncate max-w-[120px]">
                         <i class="fa-solid fa-chevron-left"></i> <span id="learn-deck-name-label" class="font-medium truncate"></span>
                     </button>
                     <div class="flex items-center gap-2">
-                        <button id="btn-mode-chrono" onclick="setLearnMode('chrono')" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_chrono">
+                        <button onclick="setLearnMode('chrono')" id="learn-btn-chrono" class="learn-mode-btn text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_chrono">
                             <i class="fa-solid fa-arrow-down-1-9 text-sm"></i>
                         </button>
-                        <button id="btn-mode-random" onclick="setLearnMode('random')" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_random">
+                        <button onclick="setLearnMode('random')" id="learn-btn-random" class="learn-mode-btn text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_btn_random">
                             <i class="fa-solid fa-shuffle text-sm"></i>
                         </button>
                         <button onclick="toggleLearnDirection()" class="text-muted hover:accent-text transition w-8 h-8 rounded-full flex items-center justify-center bg-card shadow-sm border border-subtle active:scale-95" data-i18n-title="learn_mode_swap">
@@ -391,7 +397,7 @@
         <section id="view-goals" class="view hidden px-5 pt-4 pb-6 min-h-full">
             <div class="bg-card p-6 rounded-3xl shadow-sm mb-5 flex flex-col items-center justify-center border border-subtle">
                 <div class="text-6xl mb-2">🔥</div>
-                <h3 class="text-3xl font-bold"><span id="streak-count">0</span> <span id="streak-label"></span></h3>
+                <h3 class="text-3xl font-bold"><span id="streak-count">0</span> <span id="streak-day-label">Tage</span></h3>
                 <p class="text-sm text-muted mt-1" data-i18n="goals_streak_label"></p>
             </div>
             <div class="bg-card p-6 rounded-3xl shadow-sm border border-subtle">
@@ -478,10 +484,9 @@
                     <button onclick="setLanguage('en')" id="settings-lang-en" class="lang-toggle-btn">🇺🇸 EN</button>
                 </div>
             </div>
-            <!-- Neuer Scan Zähler -->
             <div class="flex justify-between items-center py-3 border-b border-subtle">
-                <span class="font-medium text-sm" data-i18n="settings_scans"></span>
-                <span class="text-sm font-bold text-muted"><span id="settings-scan-count">0</span> / 200</span>
+                <span class="font-medium text-sm" data-i18n="settings_scan_counter"></span>
+                <span id="settings-scan-count" class="text-sm font-bold accent-text">0 / 200</span>
             </div>
             <div class="pt-4 space-y-3">
                 <button onclick="triggerImport(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
@@ -494,7 +499,7 @@
         </div>
     </div>
 
-    <!-- ═══ SCAN PREVIEW MODAL ═══ -->
+    <!-- ═══ SCAN PREVIEW MODAL (NEU) ═══ -->
     <div id="scan-preview-modal" class="modal-overlay hidden" style="z-index: 100;">
         <div class="modal-sheet flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -541,12 +546,10 @@
             scan_step2_btn:      'Mit KI scannen',
             scan_no_image:       'Bitte zuerst ein Bild auswählen.',
             scan_no_vocab:       'Die KI hat keine Vokabeln erkannt. Versuche ein klareres Foto.',
-            
+            // Neue i18n für Vorschau
             scan_preview_title:  'Überprüfe deine neuen Karten',
-            scan_preview_swap:   'Vorder- und Rückseite tauschen',
+            scan_preview_swap:   'Vorder- und  Rückseite tauschen',
             scan_preview_confirm:'Diese Richtung speichern',
-            scan_preview_front:  'Vorne',
-            scan_preview_back:   'Rück',
             
             learn_pick_title:    'Welche Liste willst du lernen?',
             learn_pick_subtitle: 'Wähle eine Liste oder lerne aus allen Wortpaaren.',
@@ -559,7 +562,7 @@
             learn_front:         'Vorderseite',
             learn_back:          'Rückseite',
             learn_flip_hint:     'Tippen zum Drehen',
-            
+            // Neue i18n für Modus
             learn_btn_chrono:    'Chronologisch',
             learn_btn_random:    'Zufall',
             learn_mode_chrono:   'Chronologischer Modus aktiviert',
@@ -581,8 +584,7 @@
             detail_empty:      'Noch leer. Füge Vokabeln hinzu.',
             detail_vocab_count_singular: 'Vokabel',
             detail_vocab_count_plural:   'Vokabeln',
-            goals_days_singular: 'Tag',
-            goals_days_plural:   'Tage',
+            goals_days:          'Tag(e)',  // wird dynamisch ersetzt
             goals_streak_label:  'Aktueller Streak',
             goals_daily_title:   'Tagesziel',
             goals_change:        'Ändern',
@@ -593,7 +595,7 @@
             settings_theme_light: 'Hell',
             settings_accent:      'Akzentfarbe',
             settings_language:    'Sprache',
-            settings_scans:       'Scans',
+            settings_scan_counter:'Scans verwendet',
             settings_import:      'Backup importieren',
             settings_export:      'Backup exportieren',
             deck_words_suffix:    'Wörter',
@@ -637,12 +639,10 @@
             scan_step2_btn:      'Scan with AI',
             scan_no_image:       'Please select an image first.',
             scan_no_vocab:       'AI found no vocabulary. Try a clearer photo.',
-            
+            // Neue i18n
             scan_preview_title:  'Review your new cards',
             scan_preview_swap:   'Swap front and back view',
-            scan_preview_confirm:'Save in this direction',
-            scan_preview_front:  'Front',
-            scan_preview_back:   'Back',
+            scan_preview_confirm:'Save this order',
             
             learn_pick_title:    'Which list do you want to study?',
             learn_pick_subtitle: 'Choose a list or study all word pairs.',
@@ -655,7 +655,7 @@
             learn_front:         'Front',
             learn_back:          'Back',
             learn_flip_hint:     'Tap to flip',
-            
+            // Neue i18n
             learn_btn_chrono:    'Chronological',
             learn_btn_random:    'Random',
             learn_mode_chrono:   'Chronological mode activated',
@@ -677,8 +677,7 @@
             detail_empty:      'Empty. Add vocabulary.',
             detail_vocab_count_singular: 'word',
             detail_vocab_count_plural:   'words',
-            goals_days_singular: 'day',
-            goals_days_plural:   'days',
+            goals_days:          'day(s)',
             goals_streak_label:  'Current streak',
             goals_daily_title:   'Daily goal',
             goals_change:        'Change',
@@ -689,7 +688,7 @@
             settings_theme_light: 'Light',
             settings_accent:      'Accent color',
             settings_language:    'Language',
-            settings_scans:       'Scans',
+            settings_scan_counter:'Scans used',
             settings_import:      'Import backup',
             settings_export:      'Export backup',
             deck_words_suffix:    'words',
@@ -845,8 +844,8 @@
         theme:               'dark',
         accent:              'indigo',
         lastBackupWordCount: 0,
-        scansCount:          0,
-        lastLearnDeckId:     null
+        lastLearnDeckId:     null,
+        scanCount:           0
     };
 
     let decks = [];
@@ -854,14 +853,13 @@
     let currentCardIndex     = 0;
     let isCardFlipped        = false;
     let learnDirectionReversed = false; 
-    let learnMode            = 'chrono'; 
+    let learnMode            = 'chrono'; // chrono oder random
     let remainingIndices     = [];
     let touchStartX = 0, touchEndX = 0;
     let currentDetailDeckId  = null;
 
     let pendingScanPairs = [];
     let pendingDeckId = null;
-    let isBackupWarningDismissed = false;
 
     // ══════════════════════════════════════════════
     //  Init
@@ -875,7 +873,6 @@
         applyAccent();
         checkStreak();
         populateScanDeckSelector();
-        updateLearnModeButtons();
 
         const onboarded = await dbGet(STORE_META, 'onboarded');
         if (!onboarded) {
@@ -903,6 +900,7 @@
         decks = await dbGetAll(STORE_DECKS);
         decks.sort((a, b) => a.id - b.id);
         
+        // MIGRATION: en/de -> front/back auto konvertieren
         let needsSave = false;
         decks.forEach(deck => {
             deck.words.forEach(w => {
@@ -917,6 +915,7 @@
             await dbPut(STORE_DECKS, def);
             decks = [def];
         } else if (needsSave) {
+            // Alle konvertierten Listen speichern
             for (const deck of decks) { await dbPut(STORE_DECKS, deck); }
         }
     }
@@ -975,11 +974,12 @@
     }
 
     function openSettingsModal() {
-        document.getElementById('settings-scan-count').textContent = appState.scansCount || 0;
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
         applyTheme();
         _updateLangButtons(currentLang);
+        const scanCountEl = document.getElementById('settings-scan-count');
+        if (scanCountEl) scanCountEl.textContent = `${appState.scanCount || 0} / 200`;
     }
     function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
     function closeSettingsOnBackdrop(e) { if (e.target === document.getElementById('settings-modal')) closeSettingsModal(); }
@@ -1038,6 +1038,7 @@
                 if (Array.isArray(data) && data.length > 0 && data[0].words !== undefined) {
                     let imported = 0;
                     for (const deck of data) {
+                        // Dynamisch auf front/back konvertieren
                         deck.words = deck.words.map(w => ({
                             id: w.id || Date.now() + Math.random(),
                             front: w.front || w.en || '',
@@ -1047,10 +1048,10 @@
                         if (!existing) { await saveDeck(deck); imported += deck.words.length; }
                     }
                     appState.lastBackupWordCount = totalWordCount();
-                    isBackupWarningDismissed = false;
                     await saveState();
                     alert(t('alert_import_success')(imported));
                 } else if (Array.isArray(data) && (data[0]?.en || data[0]?.front)) {
+                    // Legacy import Format Fallback
                     const target = decks[0];
                     const existingWords = new Set(target.words.map(w => (w.front).toLowerCase()));
                     const newWords = data
@@ -1064,7 +1065,6 @@
                     target.words = [...newWords, ...target.words];
                     await saveDeck(target);
                     appState.lastBackupWordCount = totalWordCount();
-                    isBackupWarningDismissed = false;
                     await saveState();
                     alert(t('alert_import_legacy')(newWords.length, target.name));
                 } else {
@@ -1089,24 +1089,19 @@
         a.download = `vocab_backup_${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a); a.click(); a.remove();
         appState.lastBackupWordCount = totalWordCount();
-        isBackupWarningDismissed = false;
         await saveState();
-    }
-
-    function dismissBackupWarning() {
-        isBackupWarningDismissed = true;
-        checkBackupStatus();
     }
 
     function checkBackupStatus() {
         const box = document.getElementById('backup-warning');
         if (!box) return;
-        if (isBackupWarningDismissed) {
-            box.classList.add('hidden');
-            return;
-        }
         const diff = totalWordCount() - (appState.lastBackupWordCount || 0);
         box.classList.toggle('hidden', diff <= 10);
+    }
+
+    function dismissBackupWarning() {
+        const box = document.getElementById('backup-warning');
+        if (box) box.classList.add('hidden');
     }
 
     function populateScanDeckSelector() {
@@ -1168,10 +1163,6 @@
         if (loaderText) loaderText.textContent = t('scan_loader_uploading');
         scanBtn.disabled = true;
 
-        // KI Zähler hochsetzen
-        appState.scansCount = (appState.scansCount || 0) + 1;
-        await saveState();
-
         try {
             if (loaderText) loaderText.textContent = t('scan_loader_ai');
 
@@ -1204,6 +1195,9 @@
             if (placeholder) { placeholder.classList.remove('hidden'); }
             scanBtn.disabled = true;
 
+            // Vorschau-Modul aufrufen anstatt direkt zu speichern
+            appState.scanCount = (appState.scanCount || 0) + 1;
+            await saveState();
             renderScanPreview();
             document.getElementById('scan-preview-modal').classList.remove('hidden');
 
@@ -1215,22 +1209,28 @@
         }
     }
 
+    // ── Vorschau Modal Funktionen ──
     function renderScanPreview() {
         const list = document.getElementById('scan-preview-list');
         list.innerHTML = '';
+        const frontLabel = currentLang === 'de' ? 'Vorne' : 'Front';
+        const backLabel  = currentLang === 'de' ? 'Rück'  : 'Back';
         pendingScanPairs.forEach(p => {
-            list.innerHTML += `
-                <div class="bg-card p-3 rounded-2xl border border-subtle flex gap-3 items-center">
-                    <div class="flex flex-col gap-1.5 flex-shrink-0">
-                        <span class="bg-slate-300 dark:bg-slate-500 text-slate-700 dark:text-white text-[10px] font-bold px-2 py-1 rounded text-center w-12 uppercase tracking-wide">${t('scan_preview_front')}</span>
-                        <span class="accent-bg text-white text-[10px] font-bold px-2 py-1 rounded text-center w-12 uppercase tracking-wide">${t('scan_preview_back')}</span>
+            const item = document.createElement('div');
+            item.className = 'bg-card rounded-2xl border border-subtle overflow-hidden';
+            item.innerHTML = `
+                <div class="flex items-stretch">
+                    <div class="flex flex-col items-center justify-center px-2 py-3 flex-shrink-0 gap-2">
+                        <span style="background:#475569;color:#fff;font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:0.35rem;letter-spacing:0.03em;">${escapeHtml(frontLabel)}</span>
+                        <span style="background:var(--color-primary);color:#fff;font-size:0.65rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:0.35rem;letter-spacing:0.03em;">${escapeHtml(backLabel)}</span>
                     </div>
-                    <div class="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
-                        <p class="font-bold text-sm truncate leading-none">${escapeHtml(p.front)}</p>
-                        <p class="text-muted text-sm truncate leading-none">${escapeHtml(p.back)}</p>
+                    <div class="flex flex-col justify-center px-3 py-3 flex-1 min-w-0 border-l border-subtle">
+                        <p class="font-bold text-sm leading-snug">${escapeHtml(p.front)}</p>
+                        <p class="text-muted text-sm mt-1 leading-snug">${escapeHtml(p.back)}</p>
                     </div>
                 </div>
             `;
+            list.appendChild(item);
         });
     }
 
@@ -1262,6 +1262,9 @@
         switchView('deck-detail');
     }
 
+    // ══════════════════════════════════════════════
+    //  List View
+    // ══════════════════════════════════════════════
     function renderDeckOverview() {
         const container = document.getElementById('deck-overview');
         if (!container) return;
@@ -1325,6 +1328,9 @@
         switchView('deck-detail');
     }
 
+    // ══════════════════════════════════════════════
+    //  Deck Detail View
+    // ══════════════════════════════════════════════
     function renderDeckDetail() {
         const deck = decks.find(d => d.id === currentDetailDeckId);
         if (!deck) { switchView('list'); return; }
@@ -1392,6 +1398,9 @@
         renderDeckDetail();
     }
 
+    // ══════════════════════════════════════════════
+    //  Learn View
+    // ══════════════════════════════════════════════
     function showLearnBanner(msgKey) {
         const banner = document.getElementById('learn-banner');
         if (!banner) return;
@@ -1402,26 +1411,22 @@
 
     function setLearnMode(mode) {
         learnMode = mode;
-        updateLearnModeButtons();
-        
         if (mode === 'random') {
             showLearnBanner('learn_mode_random');
             initRemainingIndices();
         } else {
             showLearnBanner('learn_mode_chrono');
         }
-    }
-    
-    function updateLearnModeButtons() {
-        const btnChrono = document.getElementById('btn-mode-chrono');
-        const btnRandom = document.getElementById('btn-mode-random');
-        if (btnChrono) btnChrono.classList.toggle('mode-active', learnMode === 'chrono');
-        if (btnRandom) btnRandom.classList.toggle('mode-active', learnMode === 'random');
+        const btnChrono = document.getElementById('learn-btn-chrono');
+        const btnRandom = document.getElementById('learn-btn-random');
+        if (btnChrono) btnChrono.classList.toggle('active', mode === 'chrono');
+        if (btnRandom) btnRandom.classList.toggle('active', mode === 'random');
     }
 
     function initRemainingIndices() {
         const words = window._learnWords || [];
         remainingIndices = Array.from({length: words.length}, (_, i) => i);
+        // aktuellen Index kurz entfernen, falls nicht letzte Karte
         if(words.length > 1) {
             remainingIndices = remainingIndices.filter(i => i !== currentCardIndex);
         }
@@ -1506,11 +1511,15 @@
         document.getElementById('learn-deck-selector').classList.add('hidden');
         document.getElementById('learn-session').classList.remove('hidden');
 
+        // Initiale Aktivmarkierung der Modus-Buttons
+        const btnChrono = document.getElementById('learn-btn-chrono');
+        const btnRandom = document.getElementById('learn-btn-random');
+        if (btnChrono) btnChrono.classList.toggle('active', learnMode === 'chrono');
+        if (btnRandom) btnRandom.classList.toggle('active', learnMode === 'random');
+
         currentCardIndex = 0;
         isCardFlipped    = false;
         window._learnWords = words;
-        
-        updateLearnModeButtons();
         if(learnMode === 'random') initRemainingIndices();
         updateLearnCounter();
         renderFlashcard();
@@ -1558,15 +1567,15 @@
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
                 <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center">
                     <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
-                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center">
-                        <h2 class="${frontSize} font-bold whitespace-pre-wrap pb-2">${escapeHtml(frontText)}</h2>
+                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2">
+                        <h2 class="${frontSize} font-bold whitespace-pre-wrap leading-tight pb-1">${escapeHtml(frontText)}</h2>
                     </div>
                     <p class="absolute bottom-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
                 <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white">
                     <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
-                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center">
-                        <h2 class="${backSize} font-bold whitespace-pre-wrap pb-2">${escapeHtml(backText)}</h2>
+                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2">
+                        <h2 class="${backSize} font-bold whitespace-pre-wrap leading-tight pb-1">${escapeHtml(backText)}</h2>
                     </div>
                 </div>
             </div>`;
@@ -1661,12 +1670,18 @@
 
     function updateGoalUI() {
         const el1 = document.getElementById('streak-count');
-        const labelEl = document.getElementById('streak-label');
         const el2 = document.getElementById('goal-text');
         const el3 = document.getElementById('goal-progress');
-        
+        const streakDayEl = document.getElementById('streak-day-label');
         if (el1) el1.textContent = appState.streak;
-        if (labelEl) labelEl.textContent = appState.streak === 1 ? t('goals_days_singular') : t('goals_days_plural');
+        if (streakDayEl) {
+            const s = appState.streak;
+            if (currentLang === 'de') {
+                streakDayEl.textContent = s === 1 ? 'Tag' : 'Tage';
+            } else {
+                streakDayEl.textContent = s === 1 ? 'day' : 'days';
+            }
+        }
         if (el2) el2.textContent = `${appState.learnedToday} / ${appState.dailyGoal} ${t('goals_cards_learned')}`;
         if (el3) el3.style.width = `${Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100)}%`;
     }
