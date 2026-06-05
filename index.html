@@ -463,12 +463,16 @@
 
 
             <div class="py-4 border-b border-subtle">
-                <label class="font-medium text-sm mb-2 block">Lizenzschlüssel (Lemon Squeezy)</label>
+                <label class="font-medium text-sm mb-2 block" data-i18n="settings_license"></label>
                 <div class="flex gap-2">
-                    <input type="text" id="license-key-input" placeholder="z.B. FOCS-ABCD-1234" class="w-full bg-slate-100 dark:bg-slate-800 border border-subtle rounded-xl px-4 py-3 text-sm font-medium focus:outline-none accent-ring" onchange="saveLicenseKey()">
+                    <input type="text" id="license-key-input" class="w-full bg-slate-100 dark:bg-slate-800 border border-subtle rounded-xl px-4 py-3 text-sm font-medium focus:outline-none accent-ring" onchange="saveLicenseKey()">
                 </div>
-                <p class="text-xs text-muted mt-2">Wird für KI-Scans benötigt. <a href="https://focus-flashcards.app/#buy" target="_blank" class="accent-text underline">Hier kaufen</a></p>
+                <p class="text-xs text-muted mt-2">
+                    <span data-i18n="settings_license_hint"></span> 
+                    <a href="https://focus-flashcards.app/#buy" target="_blank" class="accent-text underline" data-i18n="settings_license_buy"></a>
+                </p>
             </div>
+
 
 
             <div class="py-4 border-b border-subtle">
@@ -607,6 +611,13 @@
             settings_theme_light: 'Hell',
             settings_accent:      'Akzentfarbe',
             settings_language:    'Sprache',
+
+            settings_license: 'Lizenzschlüssel (Lemon Squeezy)',
+            settings_license_hint: 'Wird für KI-Scans benötigt.',
+            settings_license_buy: 'Hier kaufen',
+            settings_license_placeholder: 'z.B. FOCS-ABCD-1234',
+            scan_error_no_key: 'Bitte gib deinen Lizenzschlüssel in den Einstellungen ein.',
+
             settings_scan_counter:'Scans verwendet',
             settings_import:      'Backup importieren',
             settings_export:      'Backup exportieren',
@@ -701,6 +712,13 @@
             settings_theme_light: 'Light',
             settings_accent:      'Accent color',
             settings_language:    'Language',
+
+            settings_license: 'License Key (Lemon Squeezy)',
+            settings_license_hint: 'Required for AI scans.',
+            settings_license_buy: 'Buy here.',
+            settings_license_placeholder: 'e.g. FOCS-ABCD-1234',
+            scan_error_no_key: 'Please enter your license key in settings.',
+
             settings_scan_counter:'Scans used',
             settings_import:      'Import backup',
             settings_export:      'Export backup',
@@ -1185,7 +1203,7 @@
         // NEU: Lizenzschlüssel prüfen
         const licenseKey = localStorage.getItem('focus_license_key');
         if (!licenseKey) {
-            setScanError(currentLang === 'de' ? "Bitte gib deinen Lizenzschlüssel in den Einstellungen ein." : "Please enter your license key in settings.");
+            setScanError(t('scan_error_no_key'));
             openSettingsModal(); // Öffnet direkt die Einstellungen
             return;
         }
