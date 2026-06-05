@@ -32,58 +32,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server-Konfigurationsfehler: API-Key fehlt.' });
   }
 
-  // ── 1. LIZENZSCHLÜSSEL AUS DEM HEADER LESEN ────────────────────────
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Lizenzschlüssel fehlt. Bitte in den Einstellungen eingeben.' });
-  }
-  const licenseKey = authHeader.split(' ')[1].trim();
+    // ── BYPASS AKTIVIERT: LIZENZPRÜFUNG TEMPORÄR AUSGESETZT ────────────────────────
 
-  // ── 2. UPSTASH REDIS REST-API (OHNE ZUSATZ-PAKETE) ─────────────────
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
-  
-  if (!kvUrl || !kvToken) {
-    console.error('Upstash KV Umgebungsvariablen fehlen!');
-    return res.status(500).json({ error: 'Datenbank-Konfigurationsfehler.' });
-  }
+    // Wir überspringen Lemon Squeezy und Upstash komplett.
+    // Das Backend nimmt einfach das Bild an und schickt es an OpenAI.
+    // (Entferne diesen Bypass, bevor du live gehst!)
 
-  try {
-    // A: Prüfen, ob der Schlüssel in der Datenbank existiert
-    const getRes = await fetch(`${kvUrl}/get/license:${licenseKey}`, {
-      headers: { Authorization: `Bearer ${kvToken}` }
-    });
-    const getData = await getRes.json();
-    let scansLeft = getData.result !== null ? parseInt(getData.result, 10) : null;
-
-    // B: Wenn Schlüssel noch nicht existiert -> Lemon Squeezy Validierung
-    if (scansLeft === null) {
-      const lsResponse = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
-        method: 'POST',
-        headers: { 
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({ license_key: licenseKey })
-      });
-      
-      const lsData = await lsResponse.json();
-      
-      if (!lsData.valid) {
-        return res.status(403).json({ error: 'Ungültiger oder abgelaufener Lizenzschlüssel.' });
-      }
-
-      // Ist gültig! Setze auf 200 Scans
-      scansLeft = 200;
-      await fetch(`${kvUrl}/set/license:${licenseKey}/${scansLeft}`, {
-        headers: { Authorization: `Bearer ${kvToken}` }
-      });
-    }
-
-    // C: Prüfen ob noch Scans übrig sind
-    if (scansLeft <= 0) {
-      return res.status(402).json({ error: 'Deine 200 Scans sind aufgebraucht. Bitte lade dein Guthaben auf.' });
-    }
 
     // ── 3. REQUEST-BODY LESEN (BILD) ──────────────────────────────────
     const { image } = req.body;
