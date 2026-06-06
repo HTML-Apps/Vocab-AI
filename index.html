@@ -2145,6 +2145,26 @@
         setTimeout(initPwaInstallLogic, 1500);
     });
 
+    // ══════════════════════════════════════════════
+    //  Service Worker Registrierung
+    // ══════════════════════════════════════════════
+    if ('serviceWorker' in navigator) {
+        // Wir warten, bis die Seite komplett geladen ist
+        window.addEventListener('load', () => {
+            // Hier den exakten Dateinamen deines Service Workers eintragen
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('✅ [Service Worker] Erfolgreich registriert! Scope:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('❌ [Service Worker] Registrierung fehlgeschlagen:', error);
+                });
+        });
+    } else {
+        console.warn('⚠️ Dieser Browser unterstützt keine Service Worker (PWA-Features).');
+    }
+
+
     </script>
 </body>
 </html>
