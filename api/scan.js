@@ -86,7 +86,18 @@ export default async function handler(req, res) {
 
     // --- OPENAI AUFRUFEN ---
     console.log(`[OPENAI] Sende Bild an OpenAI für Key: "${licenseKey}"...`);
-    const systemPrompt = 'Du bist ein Daten-Extraktor. Analysiere das Bild dieser Vokabelseite. Ignoriere Trennlinien, Seitenzahlen und Lautschrift in Klammern. Extrahiere die Wortpaare. Die Sprache kann variieren (oft Englisch/Deutsch, Spanisch/Deutsch, Jura-Begriffe etc.). Erkenne die Sprachen logisch. Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. Format: [{"front": "apple", "back": "Apfel"}, ...]. Kein erklärender Text, keine Markdown-Blöcke, nur das reine JSON-Array.';
+    // const systemPrompt = 'Du bist ein Daten-Extraktor. Analysiere das Bild dieser Vokabelseite. Ignoriere Trennlinien, Seitenzahlen und Lautschrift in Klammern. Extrahiere die Wortpaare. Die Sprache kann variieren (oft Englisch/Deutsch, Spanisch/Deutsch, Jura-Begriffe etc.). Erkenne die Sprachen logisch. Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. Format: [{"front": "apple", "back": "Apfel"}, ...]. Kein erklärender Text, keine Markdown-Blöcke, nur das reine JSON-Array.';
+    const systemPrompt = `Du bist ein präziser Daten-Extraktor für Lernkarten. 
+      Analysiere das Bild dieser Lernseite (Tabelle, Liste oder Vokabeln). 
+      Ignoriere rein dekorative Elemente, Trennlinien, Icons und Seitenzahlen.
+      
+      Extrahiere die Paare bestehend aus dem Begriff/Wort und der dazugehörigen Übersetzung oder Erklärung:
+      - "front": Das Ursprungswort, die Phrase oder der medizinische Fachbegriff (inkl. eventueller Abkürzungen).
+      - "back": Die Übersetzung, die Definition oder der vollständige Erklärungstext.
+      
+      Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. 
+      Format: [{"front": "Begriff", "back": "Erklärung/Übersetzung"}, ...]
+      Kein erklärender Text, keine Markdown-Blöcke (keine \`\`\`json Formatierung), nur das reine, valide JSON-Array. Achte darauf, Anführungszeichen im Text korrekt zu escapen.`;
     
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
