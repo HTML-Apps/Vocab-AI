@@ -196,6 +196,88 @@
             color: #fff !important;
             border-color: var(--color-primary) !important;
         }
+
+        /* ── PWA Install Banner ── */
+        #install-banner {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 9999;
+            padding: 1rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.10);
+            animation: slideUpBanner 0.32s cubic-bezier(0.32,0.72,0,1);
+        }
+        .dark #install-banner {
+            background: #1e293b;
+            border-top-color: #334155;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
+        }
+        @keyframes slideUpBanner {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        #install-banner.visible { display: block; }
+
+        #install-android-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.85rem 1.25rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            background-color: var(--color-primary);
+            box-shadow: 0 4px 18px var(--color-primary-shadow);
+            cursor: pointer;
+            border: none;
+            transition: background 0.15s, transform 0.12s;
+        }
+        #install-android-btn:active { transform: scale(0.97); }
+
+        #install-ios-hint {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 1rem;
+            background: var(--color-primary-light);
+            border: 1.5px solid var(--color-primary);
+        }
+        #install-ios-hint .ios-icons {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            flex-shrink: 0;
+            margin-top: 0.05rem;
+        }
+        #install-ios-hint p {
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1.45;
+            color: #1e293b;
+        }
+        .dark #install-ios-hint p { color: #e2e8f0; }
+
+        #install-banner-close {
+            position: absolute;
+            top: 0.75rem; right: 1rem;
+            font-size: 1.1rem;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+        #install-banner-close:hover { color: var(--color-primary); }
     </style>
 </head>
 
@@ -564,6 +646,31 @@
         </div>
     </div>
 
+    <!-- ═══ PWA INSTALL BANNER ═══ -->
+    <div id="install-banner" role="banner" aria-label="App installieren">
+        <button id="install-banner-close" onclick="dismissInstallBanner()" aria-label="Schließen">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <!-- Android / Desktop: beforeinstallprompt -->
+        <div id="install-android" class="hidden">
+            <button id="install-android-btn" onclick="triggerInstallPrompt()">
+                <i class="fa-solid fa-download"></i>
+                <span data-i18n="pwa_install_btn"></span>
+            </button>
+        </div>
+        <!-- iOS / Safari: Manuelle Anleitung -->
+        <div id="install-ios" class="hidden">
+            <div id="install-ios-hint">
+                <div class="ios-icons">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    <i class="fa-solid fa-arrow-right text-xs opacity-50"></i>
+                    <i class="fa-solid fa-square-plus"></i>
+                </div>
+                <p data-i18n="pwa_install_ios"></p>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ APP LOGIC ═══ -->
     <script>
 
@@ -672,6 +779,8 @@
             prompt_vocab_back:    'Rückseite (z.B. Deutsch):',
             prompt_vocab_front_edit: 'Vorderseite:',
             prompt_vocab_back_edit:  'Rückseite:',
+            pwa_install_btn: 'App installieren',
+            pwa_install_ios: 'Für die beste Erfahrung: Tippe auf das Teilen-Symbol und wähle „Zum Home-Bildschirm hinzufügen".',
         },
         en: {
             onboarding_title:    'Flashcard-AI',
@@ -777,6 +886,8 @@
             prompt_vocab_back:    'Back side (e.g. English):',
             prompt_vocab_front_edit: 'Front side:',
             prompt_vocab_back_edit:  'Back side:',
+            pwa_install_btn: 'Install App',
+            pwa_install_ios: 'For the best experience: Tap the Share icon and select \'Add to Home Screen\'.',
         }
     };
 
@@ -1947,7 +2058,89 @@
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+
+    // ══════════════════════════════════════════════
+    //  PWA Install Logic
+    // ══════════════════════════════════════════════
+    let deferredPrompt = null;
+
+    function initPwaInstallLogic() {
+        const banner       = document.getElementById('install-banner');
+        const androidDiv   = document.getElementById('install-android');
+        const iosDiv       = document.getElementById('install-ios');
+        if (!banner || !androidDiv || !iosDiv) return;
+
+        // 1. Bereits als PWA installiert → Banner dauerhaft verstecken
+        const isStandalone =
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true;
+
+        if (isStandalone) return;
+
+        // 2. User hat Banner manuell geschlossen → nicht erneut zeigen
+        if (localStorage.getItem('pwa_banner_dismissed') === '1') return;
+
+        // 3. iOS-Erkennung (Safari, nicht standalone)
+        const ua = navigator.userAgent || '';
+        const isIOS = /iPhone|iPad|iPod/i.test(ua);
+        // Safari auf iOS erkennen (Chrome/Firefox auf iOS haben 'CriOS'/'FxiOS')
+        const isIOSSafari = isIOS && !/CriOS|FxiOS|OPiOS|mercury/i.test(ua);
+
+        if (isIOSSafari) {
+            iosDiv.classList.remove('hidden');
+            banner.classList.add('visible');
+            return;
+        }
+
+        // 4. Android / Desktop: beforeinstallprompt abfangen
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            androidDiv.classList.remove('hidden');
+            banner.classList.add('visible');
+        });
+
+        // 5. Nach erfolgreicher Installation Banner verstecken
+        window.addEventListener('appinstalled', () => {
+            hidePwaInstallBanner();
+        });
+    }
+
+    async function triggerInstallPrompt() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') {
+            hidePwaInstallBanner();
+        } else {
+            // User hat abgelehnt → Banner ausblenden, nicht erneut nerven
+            dismissInstallBanner();
+        }
+    }
+
+    function hidePwaInstallBanner() {
+        const banner = document.getElementById('install-banner');
+        if (banner) {
+            banner.style.animation = 'none';
+            banner.style.transition = 'opacity 0.25s, transform 0.25s';
+            banner.style.opacity = '0';
+            banner.style.transform = 'translateY(100%)';
+            setTimeout(() => banner.classList.remove('visible'), 260);
+        }
+    }
+
+    function dismissInstallBanner() {
+        localStorage.setItem('pwa_banner_dismissed', '1');
+        hidePwaInstallBanner();
+    }
+
     document.addEventListener('DOMContentLoaded', initApp);
+
+    // PWA Install-Logik starten (nach kurzem Delay, damit die App erst geladen ist)
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initPwaInstallLogic, 1500);
+    });
     </script>
 </body>
 </html>
