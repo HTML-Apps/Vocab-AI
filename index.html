@@ -2064,46 +2064,50 @@
     // ══════════════════════════════════════════════
     let deferredPrompt = null;
 
+    // WICHTIG: Sofort lauschen, NICHT im Timeout!
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Standard-Mini-Infobar von Android Chrome verhindern
+        e.preventDefault();
+        // Event für unseren eigenen Button speichern
+        deferredPrompt = e;
+        // Versuchen wir direkt, unseren Android-Button zu zeigen
+        showAndroidInstallBanner();
+    });
+
+    function showAndroidInstallBanner() {
+        const banner = document.getElementById('install-banner');
+        const androidDiv = document.getElementById('install-android');
+        
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isStandalone || localStorage.getItem('pwa_banner_dismissed') === '1') return;
+
+        if (deferredPrompt && banner && androidDiv) {
+            androidDiv.classList.remove('hidden');
+            banner.classList.add('visible');
+        }
+    }
+
     function initPwaInstallLogic() {
-        const banner       = document.getElementById('install-banner');
-        const androidDiv   = document.getElementById('install-android');
-        const iosDiv       = document.getElementById('install-ios');
-        if (!banner || !androidDiv || !iosDiv) return;
+        const banner = document.getElementById('install-banner');
+        const iosDiv = document.getElementById('install-ios');
+        if (!banner || !iosDiv) return;
 
-        // 1. Bereits als PWA installiert → Banner dauerhaft verstecken
-        const isStandalone =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone === true;
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isStandalone || localStorage.getItem('pwa_banner_dismissed') === '1') return;
 
-        if (isStandalone) return;
-
-        // 2. User hat Banner manuell geschlossen → nicht erneut zeigen
-        if (localStorage.getItem('pwa_banner_dismissed') === '1') return;
-
-        // 3. iOS-Erkennung (Safari, nicht standalone)
         const ua = navigator.userAgent || '';
         const isIOS = /iPhone|iPad|iPod/i.test(ua);
-        // Safari auf iOS erkennen (Chrome/Firefox auf iOS haben 'CriOS'/'FxiOS')
         const isIOSSafari = isIOS && !/CriOS|FxiOS|OPiOS|mercury/i.test(ua);
 
         if (isIOSSafari) {
+            // Auf iOS zeigen wir die manuelle Anleitung
             iosDiv.classList.remove('hidden');
             banner.classList.add('visible');
             return;
         }
 
-        // 4. Android / Desktop: beforeinstallprompt abfangen
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            androidDiv.classList.remove('hidden');
-            banner.classList.add('visible');
-        });
-
-        // 5. Nach erfolgreicher Installation Banner verstecken
-        window.addEventListener('appinstalled', () => {
-            hidePwaInstallBanner();
-        });
+        // Falls wir auf Android sind und das Event schon gefeuert hat:
+        showAndroidInstallBanner();
     }
 
     async function triggerInstallPrompt() {
@@ -2114,7 +2118,6 @@
         if (outcome === 'accepted') {
             hidePwaInstallBanner();
         } else {
-            // User hat abgelehnt → Banner ausblenden, nicht erneut nerven
             dismissInstallBanner();
         }
     }
@@ -2137,10 +2140,11 @@
 
     document.addEventListener('DOMContentLoaded', initApp);
 
-    // PWA Install-Logik starten (nach kurzem Delay, damit die App erst geladen ist)
     window.addEventListener('DOMContentLoaded', () => {
+        // iOS-Logik kann ruhig verzögert kommen, damit das Onboarding nicht zu unruhig wirkt
         setTimeout(initPwaInstallLogic, 1500);
     });
+
     </script>
 </body>
 </html>
