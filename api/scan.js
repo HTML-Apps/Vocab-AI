@@ -22,8 +22,8 @@ export default async function handler(req, res) {
   }
   const licenseKey = authHeader.split(' ')[1].trim();
 
-  const masterKeys = ['H-TEST', 'E-TEST', 'M-TEST','J-TEST'];
-  const isMasterKey = masterKeys.includes(licenseKey);
+  // ── 1.5 DIE MASTER-KEY WHITELIST (SICHER ÜBER VERCEL) ──────────
+  const isMasterKey = (licenseKey === process.env.SECRET_MASTER_KEY);
 
   console.log(`[API START] Key empfangen: "${licenseKey}". Ist Master-Key? ${isMasterKey}`);
 
