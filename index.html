@@ -17,6 +17,10 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
 
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -516,9 +520,14 @@
 
     <!-- ═══ SCAN PREVIEW MODAL (NEU) ═══ -->
     <div id="scan-preview-modal" class="modal-overlay hidden" style="z-index: 100;">
-        <div class="modal-sheet flex flex-col max-h-[85vh]">
+        <div class="modal-sheet flex flex-col max-h-[85vh]" style="position:relative;">
+            <!-- Info Banner -->
+            <div id="scan-preview-banner" class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-slate-800 dark:bg-white text-white dark:text-black px-4 py-2 rounded-full text-sm font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-50 shadow-lg text-center whitespace-nowrap" data-i18n="scan_preview_info"></div>
             <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                <h3 class="text-lg font-bold" data-i18n="scan_preview_title"></h3>
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <span data-i18n="scan_preview_title"></span>
+                    <button onclick="showScanInfoBanner()" class="accent-text opacity-60 hover:opacity-100 transition text-base leading-none"><i class="fa-solid fa-circle-info"></i></button>
+                </h3>
                 <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto space-y-3 pb-4 hide-scrollbar" id="scan-preview-list"></div>
@@ -528,6 +537,27 @@
                 </button>
                 <button onclick="confirmScanPreview()" class="w-full accent-bg accent-bg-hover text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 accent-shadow active:scale-95 transition">
                     <i class="fa-solid fa-check"></i> <span data-i18n="scan_preview_confirm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ CROP MODAL ═══ -->
+    <div id="crop-modal" class="modal-overlay hidden" style="z-index: 110;">
+        <div class="modal-sheet flex flex-col" style="max-height:90vh;">
+            <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                <h3 class="text-lg font-bold" data-i18n="crop_title"></h3>
+                <button onclick="closeCropModal()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-hidden rounded-2xl bg-black flex items-center justify-center" style="min-height:220px;max-height:55vh;">
+                <img id="crop-image" src="" alt="Crop" style="max-width:100%;display:block;">
+            </div>
+            <div class="pt-4 mt-auto flex gap-3 flex-shrink-0">
+                <button onclick="closeCropModal()" class="flex-1 bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fa-solid fa-xmark text-muted"></i> <span data-i18n="crop_cancel"></span>
+                </button>
+                <button onclick="confirmCrop()" class="flex-1 accent-bg accent-bg-hover text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 accent-shadow active:scale-95 transition">
+                    <i class="fa-solid fa-crop-simple"></i> <span data-i18n="crop_confirm"></span>
                 </button>
             </div>
         </div>
@@ -565,6 +595,10 @@
             scan_preview_title:  'Überprüfe deine neuen Karten',
             scan_preview_swap:   'Vorder- und  Rückseite tauschen',
             scan_preview_confirm:'Diese Richtung speichern',
+            scan_preview_info:   'Lernreihenfolge kann später angepasst werden',
+            crop_title:          'Bild zuschneiden',
+            crop_confirm:        'Zuschneiden',
+            crop_cancel:         'Abbrechen',
             
             learn_pick_title:    'Welche Liste willst du lernen?',
             learn_pick_subtitle: 'Wähle eine Liste oder lerne aus allen Wortpaaren.',
@@ -666,6 +700,10 @@
             scan_preview_title:  'Review your new cards',
             scan_preview_swap:   'Swap front and back view',
             scan_preview_confirm:'Save this order',
+            scan_preview_info:   'Learning order can be adjusted later',
+            crop_title:          'Crop image',
+            crop_confirm:        'Crop',
+            crop_cancel:         'Cancel',
             
             learn_pick_title:    'Which list do you want to study?',
             learn_pick_subtitle: 'Choose a list or study all word pairs.',
@@ -876,8 +914,7 @@
         accent:              'indigo',
         lastBackupWordCount: 0,
         lastLearnDeckId:     null,
-        scanCount:           0,
-        difficultPairs:      []
+        scanCount:           0
     };
 
     let decks = [];
@@ -930,7 +967,11 @@
 
     async function loadDecks() {
         decks = await dbGetAll(STORE_DECKS);
-        decks.sort((a, b) => a.id - b.id);
+        decks.sort((a, b) => {
+            if (a.id === 'difficult_deck') return 1;
+            if (b.id === 'difficult_deck') return -1;
+            return a.id - b.id;
+        });
         
         // MIGRATION: en/de -> front/back auto konvertieren
         let needsSave = false;
@@ -941,11 +982,31 @@
             });
         });
 
-        if (decks.length === 0) {
+        // MIGRATION: difficultPairs aus appState -> difficult_deck
+        const savedState = await dbGet(STORE_META, 'appState');
+        if (savedState && savedState.difficultPairs && savedState.difficultPairs.length > 0) {
+            let diffDeck = decks.find(d => d.id === 'difficult_deck');
+            if (!diffDeck) {
+                diffDeck = { id: 'difficult_deck', name: '⚠️ Schwierige Wortpaare', words: [] };
+            }
+            savedState.difficultPairs.forEach(p => {
+                if (!diffDeck.words.some(w => w.id === p.id)) {
+                    diffDeck.words.push({ id: p.id, front: p.front, back: p.back });
+                }
+            });
+            await dbPut(STORE_DECKS, diffDeck);
+            const idx = decks.findIndex(d => d.id === 'difficult_deck');
+            if (idx >= 0) decks[idx] = diffDeck; else decks.push(diffDeck);
+            // difficultPairs aus appState entfernen
+            delete savedState.difficultPairs;
+            await dbPut(STORE_META, savedState, 'appState');
+        }
+
+        if (decks.filter(d => d.id !== 'difficult_deck').length === 0) {
             const defName = currentLang === 'de' ? 'Standard-Liste' : 'Default List';
             const def = { id: Date.now(), name: defName, words: [] };
             await dbPut(STORE_DECKS, def);
-            decks = [def];
+            decks.unshift(def);
         } else if (needsSave) {
             // Alle konvertierten Listen speichern
             for (const deck of decks) { await dbPut(STORE_DECKS, deck); }
@@ -963,7 +1024,7 @@
         decks = decks.filter(d => d.id !== deckId);
     }
 
-    function totalWordCount() { return decks.reduce((s, d) => s + d.words.length, 0); }
+    function totalWordCount() { return decks.filter(d => d.id !== 'difficult_deck').reduce((s, d) => s + d.words.length, 0); }
 
     function toggleTheme() {
         appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
@@ -1129,7 +1190,8 @@
 
     async function downloadData() {
         if (totalWordCount() === 0) { alert(t('alert_no_vocab_export')); return; }
-        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(decks, null, 2));
+        const exportDecks = decks.filter(d => d.id !== 'difficult_deck');
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportDecks, null, 2));
         const a = document.createElement('a');
         a.href = dataStr;
         a.download = `vocab_backup_${new Date().toISOString().slice(0,10)}.json`;
@@ -1153,7 +1215,7 @@
     function populateScanDeckSelector() {
         const sel = document.getElementById('scan-target-deck');
         if (!sel) return;
-        sel.innerHTML = decks.map(d =>
+        sel.innerHTML = decks.filter(d => d.id !== 'difficult_deck').map(d =>
             `<option value="${d.id}">${escapeHtml(d.name)} (${d.words.length} ${t('deck_words_suffix')})</option>`
         ).join('');
     }
@@ -1166,27 +1228,44 @@
         setScanError('');
         const reader = new FileReader();
         reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                const MAX_WIDTH = 1000;
-                let w = img.width, h = img.height;
-                if (w > MAX_WIDTH) { h = Math.round((h * MAX_WIDTH) / w); w = MAX_WIDTH; }
-                const canvas = document.createElement('canvas');
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                _scanImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
-
-                const previewImg  = document.getElementById('scan-preview-img');
-                const placeholder = document.getElementById('scan-placeholder');
-                previewImg.src = _scanImageBase64;
-                previewImg.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                document.getElementById('scan-btn').disabled = false;
+            // Zeige Crop-Modal mit Cropper.js
+            const cropImg = document.getElementById('crop-image');
+            cropImg.src = e.target.result;
+            document.getElementById('crop-modal').classList.remove('hidden');
+            // Cropper initialisieren (vorherige Instanz zerstören falls vorhanden)
+            if (window._cropper) { window._cropper.destroy(); window._cropper = null; }
+            cropImg.onload = function() {
+                window._cropper = new Cropper(cropImg, {
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    movable: true,
+                    zoomable: true,
+                    rotatable: false,
+                    scalable: false,
+                });
             };
-            img.src = e.target.result;
         };
         reader.readAsDataURL(file);
         event.target.value = '';
+    }
+
+    function closeCropModal() {
+        document.getElementById('crop-modal').classList.add('hidden');
+        if (window._cropper) { window._cropper.destroy(); window._cropper = null; }
+    }
+
+    function confirmCrop() {
+        if (!window._cropper) return;
+        const canvas = window._cropper.getCroppedCanvas({ maxWidth: 1000, imageSmoothingQuality: 'high' });
+        _scanImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        closeCropModal();
+
+        // Vorschau im Scan-View aktualisieren
+        const previewImg  = document.getElementById('scan-preview-img');
+        const placeholder = document.getElementById('scan-placeholder');
+        if (previewImg)  { previewImg.src = _scanImageBase64; previewImg.classList.remove('hidden'); }
+        if (placeholder) { placeholder.classList.add('hidden'); }
+        document.getElementById('scan-btn').disabled = false;
     }
 
     function setScanError(msg) {
@@ -1338,12 +1417,14 @@
         if (!container) return;
         container.innerHTML = '';
 
-        if (decks.length === 0) {
+        const visibleDecks = decks.filter(d => d.id !== 'difficult_deck');
+
+        if (visibleDecks.length === 0) {
             container.innerHTML = `<p class="text-center text-muted mt-10 text-sm">${t('list_empty')}</p>`;
             return;
         }
 
-        decks.forEach(deck => {
+        visibleDecks.forEach(deck => {
             const wSuffix = deck.words.length === 1 ? t('detail_vocab_count_singular') : t('detail_vocab_count_plural');
             const item = document.createElement('div');
             item.className = 'deck-item bg-card border border-subtle rounded-2xl p-4 flex justify-between items-center cursor-pointer';
@@ -1477,6 +1558,14 @@
         setTimeout(() => { banner.style.opacity = '0'; }, 1200);
     }
 
+    function showScanInfoBanner() {
+        const banner = document.getElementById('scan-preview-banner');
+        if (!banner) return;
+        banner.textContent = t('scan_preview_info');
+        banner.style.opacity = '1';
+        setTimeout(() => { banner.style.opacity = '0'; }, 2500);
+    }
+
     function setLearnMode(mode) {
         learnMode = mode;
         if (mode === 'random') {
@@ -1523,10 +1612,20 @@
     function initLearnView() {
         const selector = document.getElementById('learn-deck-selector');
         const session  = document.getElementById('learn-session');
-        const decksWithWords = decks.filter(d => d.words.length > 0);
+        const decksWithWords = decks.filter(d => d.id !== 'difficult_deck' && d.words.length > 0);
+        const diffDeck = decks.find(d => d.id === 'difficult_deck');
+        const diffCount = diffDeck ? diffDeck.words.length : 0;
 
-        if ((decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0))) && (appState.difficultPairs || []).length === 0) {
-            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.words.length > 0)) ? appState.lastLearnDeckId : decksWithWords[0]?.id;
+        // Session wiederherstellen für 'all' und 'difficult'
+        if (appState.lastLearnDeckId === 'all') {
+            startLearnSession('all'); return;
+        }
+        if (appState.lastLearnDeckId === 'difficult' && diffCount > 0) {
+            startLearnSession('difficult'); return;
+        }
+
+        if ((decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.id !== 'difficult_deck' && d.words.length > 0))) && diffCount === 0) {
+            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.id !== 'difficult_deck' && d.words.length > 0)) ? appState.lastLearnDeckId : decksWithWords[0]?.id;
             if (autoId) { startLearnSession(autoId); return; }
         }
 
@@ -1536,7 +1635,7 @@
         const list = document.getElementById('learn-deck-list');
         list.innerHTML = '';
 
-        if (decksWithWords.length === 0) {
+        if (decksWithWords.length === 0 && diffCount === 0) {
             list.innerHTML = `<p class="text-center text-muted text-sm">${t('learn_no_vocab_empty')}</p>`;
             return;
         }
@@ -1550,12 +1649,11 @@
             list.appendChild(allBtn);
         }
 
-        // Schwierige Wortpaare Button
-        const difficultPairs = appState.difficultPairs || [];
-        if (difficultPairs.length > 0) {
+        // Schwierige Wortpaare Button (aus difficult_deck)
+        if (diffCount > 0) {
             const diffBtn = document.createElement('button');
             diffBtn.className = 'w-full bg-card border border-red-400/40 rounded-2xl p-4 flex justify-between items-center text-red-500 dark:text-red-400 font-bold text-sm';
-            diffBtn.innerHTML = `<span><i class="fa-solid fa-brake-warning mr-0"></i>${t('learn_difficult')}</span><span class="font-normal opacity-70">${difficultPairs.length} ${t('learn_words_suffix')}</span>`;
+            diffBtn.innerHTML = `<span><i class="fa-solid fa-brake-warning mr-0"></i>${t('learn_difficult')}</span><span class="font-normal opacity-70">${diffCount} ${t('learn_words_suffix')}</span>`;
             diffBtn.onclick = () => startLearnSession('difficult');
             list.appendChild(diffBtn);
         }
@@ -1572,13 +1670,18 @@
     async function startLearnSession(deckIdOrAll) {
         let words = [], label = '';
         if (deckIdOrAll === 'all') {
-            words = decks.flatMap(d => d.words);
+            words = decks.filter(d => d.id !== 'difficult_deck').flatMap(d => d.words);
             label = t('learn_all_lists');
             currentLearnDeck = null;
+            appState.lastLearnDeckId = 'all';
+            await saveState();
         } else if (deckIdOrAll === 'difficult') {
-            words = (appState.difficultPairs || []).map(p => ({ id: p.id, front: p.front, back: p.back }));
+            const diffDeck = decks.find(d => d.id === 'difficult_deck');
+            words = diffDeck ? diffDeck.words.map(p => ({ id: p.id, front: p.front, back: p.back })) : [];
             label = t('learn_difficult');
             currentLearnDeck = null;
+            appState.lastLearnDeckId = 'difficult';
+            await saveState();
         } else {
             const deck = decks.find(d => d.id === deckIdOrAll);
             if (!deck) return;
@@ -1649,15 +1752,15 @@
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
                 <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center">
                     <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
-                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2">
-                        <h2 class="${frontSize} font-bold whitespace-pre-wrap leading-tight pb-1">${escapeHtml(frontText)}</h2>
+                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2 px-4">
+                        <h2 class="${frontSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full" lang="${currentLang}">${escapeHtml(frontText)}</h2>
                     </div>
                     <p class="absolute bottom-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
                 <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white">
                     <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
-                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2">
-                        <h2 class="${backSize} font-bold whitespace-pre-wrap leading-tight pb-1">${escapeHtml(backText)}</h2>
+                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2 px-4">
+                        <h2 class="${backSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full" lang="${currentLang}">${escapeHtml(backText)}</h2>
                     </div>
                 </div>
             </div>`;
@@ -1684,25 +1787,32 @@
         }
     }
 
-    function handleCardResult(type) {
+    async function handleCardResult(type) {
         if (type === 'known') {
             incrementGoal();
-            // Aus difficultPairs entfernen, falls vorhanden
+            // Aus difficult_deck entfernen, falls vorhanden
             const words = window._learnWords || [];
             const word = words[currentCardIndex];
             if (word) {
-                appState.difficultPairs = (appState.difficultPairs || []).filter(p => p.id !== word.id);
-                saveState();
+                const diffDeck = decks.find(d => d.id === 'difficult_deck');
+                if (diffDeck) {
+                    diffDeck.words = diffDeck.words.filter(p => p.id !== word.id);
+                    await saveDeck(diffDeck);
+                }
             }
         } else if (type === 'repeat') {
-            // Wortpaar in difficultPairs aufnehmen (kein Duplikat)
+            // Wortpaar in difficult_deck aufnehmen (kein Duplikat)
             const words = window._learnWords || [];
             const word = words[currentCardIndex];
             if (word) {
-                const already = (appState.difficultPairs || []).some(p => p.id === word.id);
+                let diffDeck = decks.find(d => d.id === 'difficult_deck');
+                if (!diffDeck) {
+                    diffDeck = { id: 'difficult_deck', name: '⚠️ Schwierige Wortpaare', words: [] };
+                }
+                const already = diffDeck.words.some(p => p.id === word.id);
                 if (!already) {
-                    appState.difficultPairs = [...(appState.difficultPairs || []), { id: word.id, front: word.front, back: word.back }];
-                    saveState();
+                    diffDeck.words = [...diffDeck.words, { id: word.id, front: word.front, back: word.back }];
+                    await saveDeck(diffDeck);
                 }
             }
         }
