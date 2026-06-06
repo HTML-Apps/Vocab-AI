@@ -909,6 +909,7 @@
         dailyGoal:           20,
         learnedToday:        0,
         lastStudyDate:       '',
+        lastGoalMetDate:     '',
         streak:              0,
         theme:               'dark',
         accent:              'indigo',
@@ -1190,7 +1191,7 @@
 
     async function downloadData() {
         if (totalWordCount() === 0) { alert(t('alert_no_vocab_export')); return; }
-        const exportDecks = decks;
+        const exportDecks = decks.filter(d => d.id !== 'difficult_deck');
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportDecks, null, 2));
         const a = document.createElement('a');
         a.href = dataStr;
@@ -1609,6 +1610,18 @@
         return 'text-lg';
     }
 
+    // Liefert inline-style für einzelne lange Wörter ohne Leerzeichen
+    function getSingleWordStyle(text) {
+        if (!text || text.trim().includes(' ') || text.trim().includes('\n')) return '';
+        const len = text.trim().length;
+        // Für kurze Wörter kein spezielles Scaling nötig
+        if (len <= 15) return '';
+        // clamp(min, preferred, max) – je länger das Wort, desto kleiner der bevorzugte Wert
+        // preferred: 90vw / len * 1.7 (Näherung für zeichenbreite)
+        const preferred = Math.max(0.8, Math.min(2.2, 28 / len));
+        return `white-space: nowrap; font-size: clamp(0.75rem, ${preferred.toFixed(2)}em + 1vw, 2.5rem);`;
+    }
+
     function initLearnView() {
         const selector = document.getElementById('learn-deck-selector');
         const session  = document.getElementById('learn-session');
@@ -1616,19 +1629,19 @@
         const diffDeck = decks.find(d => d.id === 'difficult_deck');
         const diffCount = diffDeck ? diffDeck.words.length : 0;
 
-        // Session wiederherstellen für 'all' und 'difficult'
-        if (appState.lastLearnDeckId === 'all') {
+        // Immer Session wiederherstellen wenn lastLearnDeckId gesetzt ist
+        if (appState.lastLearnDeckId === 'all' && decksWithWords.length > 0) {
             startLearnSession('all'); return;
         }
         if (appState.lastLearnDeckId === 'difficult' && diffCount > 0) {
             startLearnSession('difficult'); return;
         }
-
-        if ((decksWithWords.length === 1 || (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.id !== 'difficult_deck' && d.words.length > 0))) && diffCount === 0) {
-            const autoId = (appState.lastLearnDeckId && decks.find(d => d.id === appState.lastLearnDeckId && d.id !== 'difficult_deck' && d.words.length > 0)) ? appState.lastLearnDeckId : decksWithWords[0]?.id;
-            if (autoId) { startLearnSession(autoId); return; }
+        if (appState.lastLearnDeckId && appState.lastLearnDeckId !== 'all' && appState.lastLearnDeckId !== 'difficult') {
+            const savedDeck = decks.find(d => d.id === appState.lastLearnDeckId && d.id !== 'difficult_deck' && d.words.length > 0);
+            if (savedDeck) { startLearnSession(savedDeck.id); return; }
         }
 
+        // Kein gespeicherter State: Selector anzeigen
         selector.classList.remove('hidden');
         session.classList.add('hidden');
 
@@ -1747,20 +1760,30 @@
 
         const frontSize = getDynamicTextSize(frontText);
         const backSize  = getDynamicTextSize(backText);
+        const frontSingleStyle = getSingleWordStyle(frontText);
+        const backSingleStyle  = getSingleWordStyle(backText);
+
+        // Wenn ein einzelnes langes Wort: nowrap + clamp-Schriftgröße, kein break-words
+        const frontClasses = frontSingleStyle
+            ? `font-bold leading-tight pb-1 w-full`
+            : `${frontSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full`;
+        const backClasses = backSingleStyle
+            ? `font-bold leading-tight pb-1 w-full`
+            : `${backSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full`;
 
         container.innerHTML = `
             <div id="flashcard" class="preserve-3d flip-transition cursor-pointer shadow-xl rounded-3xl" onclick="flipCard()" style="position:relative;width:100%;height:100%;min-height:220px">
                 <div class="absolute inset-0 backface-hidden bg-card rounded-3xl border border-subtle flex flex-col justify-center items-center p-6 text-center">
                     <span class="absolute top-4 left-4 text-xs font-bold text-muted">${frontLabel}</span>
-                    <div class="w-full max-h-[75%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2 px-4">
-                        <h2 class="${frontSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full" lang="${currentLang}">${escapeHtml(frontText)}</h2>
+                    <div class="w-full max-h-[75%] overflow-hidden hide-scrollbar flex items-center justify-center py-2 px-4">
+                        <h2 class="${frontClasses}" style="${frontSingleStyle}" lang="de">${escapeHtml(frontText)}</h2>
                     </div>
                     <p class="absolute bottom-6 text-muted text-sm"><i class="fa-solid fa-hand-pointer mr-2"></i>${t('learn_flip_hint')}</p>
                 </div>
                 <div class="absolute inset-0 backface-hidden rotate-y-180 accent-bg rounded-3xl flex flex-col justify-center items-center p-6 text-center text-white">
                     <span class="absolute top-4 left-4 text-xs font-bold text-white/60">${backLabel}</span>
-                    <div class="w-full max-h-[85%] overflow-y-auto hide-scrollbar flex items-center justify-center py-2 px-4">
-                        <h2 class="${backSize} font-bold whitespace-pre-wrap leading-tight pb-1 break-words hyphens-auto w-full" lang="${currentLang}">${escapeHtml(backText)}</h2>
+                    <div class="w-full max-h-[85%] overflow-hidden hide-scrollbar flex items-center justify-center py-2 px-4">
+                        <h2 class="${backClasses}" style="${backSingleStyle}" lang="de">${escapeHtml(backText)}</h2>
                     </div>
                 </div>
             </div>`;
@@ -1853,24 +1876,45 @@
     // ══════════════════════════════════════════════
     function checkStreak() {
         const today = new Date().toDateString();
-        if (appState.lastStudyDate !== today) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            if (appState.lastStudyDate !== yesterday.toDateString() && appState.lastStudyDate !== '') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toDateString();
+
+        if (appState.lastStudyDate === today) {
+            // Heute schon gelernt – nichts ändern
+            return;
+        }
+
+        // Neuer Tag: learnedToday zurücksetzen
+        appState.learnedToday = 0;
+
+        // Streak nullen falls gestern kein Tagesziel erreicht wurde
+        // (lastGoalMetDate ist der Tag, an dem das Ziel zuletzt erreicht wurde)
+        if (appState.lastGoalMetDate !== yesterdayStr) {
+            // Gestern kein Ziel erreicht (oder gestern = kein Eintrag) → Streak nullen
+            // Ausnahme: Streak ist 0 und noch nie gespielt → nicht anfassen
+            if (appState.streak > 0) {
                 appState.streak = 0;
             }
-            appState.learnedToday = 0;
         }
+
         saveState();
     }
 
     async function incrementGoal() {
         const today = new Date().toDateString();
-        if (appState.learnedToday === 0 && appState.lastStudyDate !== today) {
-            appState.streak += 1;
-            appState.lastStudyDate = today;
-        }
+        appState.lastStudyDate = today;
         appState.learnedToday += 1;
+
+        // Streak hochzählen genau wenn das Tagesziel heute zum ersten Mal erreicht wird
+        if (appState.learnedToday === appState.dailyGoal) {
+            // Prüfen ob Ziel heute schon gezählt wurde
+            if (appState.lastGoalMetDate !== today) {
+                appState.lastGoalMetDate = today;
+                appState.streak += 1;
+            }
+        }
+
         await saveState();
         updateLearnCounter();
     }
