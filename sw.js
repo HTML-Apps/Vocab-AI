@@ -23,8 +23,7 @@ export default async function handler(req, res) {
   }
   const licenseKey = authHeader.split(' ')[1].trim();
 
-  // ── 1.5 DIE MASTER-KEY WHITELIST (DEIN BYPASS) ────────────────────────
-  // Füge hier die Schlüssel für dich und deine Geschwister ein
+  // ── 1.5 DIE MASTER-KEY WHITELIST (EUER VIP-ZUGANG) ────────────────────────
   const masterKeys = ['H-TEST', 'E-TEST', 'M-TEST', 'J-TEST'];
   const isMasterKey = masterKeys.includes(licenseKey);
 
@@ -32,9 +31,9 @@ export default async function handler(req, res) {
   const kvToken = process.env.KV_REST_API_TOKEN;
 
   try {
-    let scansLeft = "Unlimited"; // Standard für Master-Keys
+    let scansLeft = "Unlimited (Master Key)"; 
 
-    // Nur reguläre Schlüssel über Lemon Squeezy / Upstash prüfen
+    // ── 2. NUR NORMALE KEYS ÜBER LEMON SQUEEZY / UPSTASH PRÜFEN ─────────
     if (!isMasterKey) {
       if (!kvUrl || !kvToken) return res.status(500).json({ error: 'Datenbank-Konfigurationsfehler.' });
 
@@ -65,7 +64,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // C: Prüfen ob Scans übrig sind
+      // C: Prüfen ob noch Scans übrig sind
       if (scansLeft <= 0) {
         return res.status(402).json({ error: 'Deine 200 Scans sind aufgebraucht.' });
       }
@@ -77,12 +76,38 @@ export default async function handler(req, res) {
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
 
     // ── 4. OPENAI API-AUFRUF ──────────────────────────────────────────
-    // (Dein bestehender OpenAI Code hier)
-    const systemPrompt = 'Du bist ein Daten-Extraktor. Analysiere das Bild... (Dein Prompt)'; // Kürze halber zusammengefasst
+    const systemPrompt =
+      'Du bist ein Daten-Extraktor. Analysiere das Bild dieser Vokabelseite. ' +
+      'Ignoriere Trennlinien, Seitenzahlen und Lautschrift in Klammern. ' +
+      'Extrahiere die Wortpaare. Die Sprache kann variieren (oft Englisch/Deutsch, ' +
+      'Spanisch/Deutsch, Jura-Begriffe etc.). Erkenne die Sprachen logisch. ' +
+      'Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. ' +
+      'Format: [{"front": "apple", "back": "Apfel"}, ...]. ' +
+      'Kein erklärender Text, keine Markdown-Blöcke, nur das reine JSON-Array.';
     
-    // ... [Hier fügst du deinen OpenAI Fetch-Call aus der alten Datei exakt so wieder ein] ...
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-       // ...
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 2048,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:image/jpeg;base64,${base64Data}`, detail: 'high' },
+              },
+              { type: 'text', text: 'Extrahiere alle Vokabelpaare aus diesem Bild als JSON-Array.' },
+            ],
+          },
+        ],
+      }),
     });
     
     if (!openAIResponse.ok) return res.status(502).json({ error: `OpenAI API Fehler: ${openAIResponse.status}` });
@@ -93,8 +118,9 @@ export default async function handler(req, res) {
     let vocabPairs;
     try {
       vocabPairs = JSON.parse(cleaned);
+      if (!Array.isArray(vocabPairs)) throw new Error();
     } catch (parseErr) {
-      return res.status(422).json({ error: 'Ungültiges JSON.', raw: rawContent });
+      return res.status(422).json({ error: 'Die KI hat kein gültiges JSON zurückgegeben.', raw: rawContent });
     }
 
     // ── 5. SCAN ABZIEHEN (NUR FÜR NORMALE USER) ─────────────
