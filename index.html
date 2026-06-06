@@ -1190,7 +1190,7 @@
 
     async function downloadData() {
         if (totalWordCount() === 0) { alert(t('alert_no_vocab_export')); return; }
-        const exportDecks = decks.filter(d => d.id !== 'difficult_deck');
+        const exportDecks = decks;
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportDecks, null, 2));
         const a = document.createElement('a');
         a.href = dataStr;
