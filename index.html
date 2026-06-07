@@ -651,13 +651,16 @@
             <div class="flex-1 overflow-y-auto space-y-3 pb-4 hide-scrollbar" id="scan-preview-list"></div>
             <!-- Footer mit schwebender Badge mittig über dem Tauschen-Button -->
             <div class="pt-4 mt-auto border-t border-subtle flex-shrink-0" style="position:relative;">
-                <!-- Schwebende Zähler-Badge -->
+                <!-- Schwebende Zähler-Badge: äußeres span = Positionierung, inneres span = Animation -->
                 <span id="scan-preview-count-badge"
-                    class="hidden accent-bg text-white text-xs font-bold px-3 py-1 rounded-full"
+                    class="hidden"
                     style="position:absolute; top:-0.85rem; left:50%; transform:translateX(-50%);
-                           box-shadow: 0 4px 18px var(--color-primary-shadow), 0 1px 4px rgba(0,0,0,0.18);
-                           white-space:nowrap; animation: badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1);
-                           pointer-events:none; z-index:10;"></span>
+                           pointer-events:none; z-index:10;">
+                    <span id="scan-preview-count-badge-inner"
+                        class="accent-bg text-white text-xs font-bold px-3 py-1 rounded-full"
+                        style="display:inline-block; white-space:nowrap;
+                               box-shadow: 0 4px 18px var(--color-primary-shadow), 0 1px 4px rgba(0,0,0,0.18);"></span>
+                </span>
                 <div class="flex flex-col gap-3">
                 <button onclick="swapScanPreview()" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition">
                     <i class="fa-solid fa-arrows-rotate accent-text"></i> <span data-i18n="scan_preview_swap"></span>
@@ -1620,14 +1623,15 @@
         list.innerHTML = '';
 
         // Zähler-Badge anzeigen
-        const badge = document.getElementById('scan-preview-count-badge');
-        if (badge && pendingScanPairs.length > 0) {
-            badge.textContent = t('scan_preview_count_badge')(pendingScanPairs.length);
+        const badge      = document.getElementById('scan-preview-count-badge');
+        const badgeInner = document.getElementById('scan-preview-count-badge-inner');
+        if (badge && badgeInner && pendingScanPairs.length > 0) {
+            badgeInner.textContent = t('scan_preview_count_badge')(pendingScanPairs.length);
             badge.classList.remove('hidden');
-            // Re-trigger animation
-            badge.style.animation = 'none';
-            badge.offsetHeight; // reflow
-            badge.style.animation = 'badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+            // Nur das innere Element animieren — translateX(-50%) auf dem äußeren bleibt unberührt
+            badgeInner.style.animation = 'none';
+            badgeInner.offsetHeight; // reflow
+            badgeInner.style.animation = 'badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1)';
         }
         const frontLabel = currentLang === 'de' ? 'Vorne' : 'Front';
         const backLabel  = currentLang === 'de' ? 'Rück'  : 'Back';
