@@ -146,6 +146,22 @@
         .dark .modal-sheet { background: #1e293b; }
         .modal-sheet { background: #fff; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes badgePop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* ── Scan deck multiselect chips ── */
+        .deck-chip {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            font-size: 0.7rem; font-weight: 700; line-height: 1;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            background: var(--color-primary-light);
+            color: var(--color-primary);
+            border: 1.5px solid var(--color-primary);
+            white-space: nowrap; max-width: 10rem; overflow: hidden; text-overflow: ellipsis;
+        }
+        .deck-option-row { display:flex; align-items:center; gap:0.75rem; padding:0.55rem 0.85rem; cursor:pointer; transition:background 0.12s; }
+        .deck-option-row:hover { background: var(--color-primary-light); }
+        .deck-option-row input[type=checkbox] { accent-color: var(--color-primary); width:1rem; height:1rem; flex-shrink:0; cursor:pointer; }
 
         .accent-dot {
             width: 1.4rem; height: 1.4rem;
@@ -370,7 +386,22 @@
 
             <div class="mb-4">
                 <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block" data-i18n="scan_deck_label"></label>
-                <div id="scan-target-deck-container" class="w-full bg-card border border-subtle rounded-xl px-2 py-1 text-sm font-medium dark:bg-slate-800 max-h-32 overflow-y-auto hide-scrollbar space-y-0.5"></div>
+                <!-- Compact chip-dropdown multiselect -->
+                <div id="scan-deck-multiselect" class="relative">
+                    <!-- Trigger row -->
+                    <button type="button" id="scan-deck-trigger"
+                        onclick="toggleScanDeckDropdown()"
+                        class="w-full bg-card border border-subtle rounded-xl px-3 py-2.5 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800 flex items-center justify-between gap-2 text-left">
+                        <div id="scan-deck-chips" class="flex flex-wrap gap-1.5 flex-1 min-w-0"></div>
+                        <i id="scan-deck-chevron" class="fa-solid fa-chevron-down text-muted flex-shrink-0 transition-transform duration-200 text-xs"></i>
+                    </button>
+                    <!-- Dropdown panel -->
+                    <div id="scan-deck-dropdown"
+                        class="hidden absolute left-0 right-0 z-50 mt-1 bg-card border border-subtle rounded-xl shadow-lg overflow-hidden dark:bg-slate-800"
+                        style="max-height:11rem;overflow-y:auto;">
+                        <div id="scan-deck-options" class="py-1"></div>
+                    </div>
+                </div>
             </div>
 
             <input type="file" id="scan-file-input" class="hidden" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
@@ -615,7 +646,10 @@
                     <span data-i18n="scan_preview_title"></span>
                     <button onclick="showScanInfoBanner()" class="accent-text opacity-60 hover:opacity-100 transition text-base leading-none"><i class="fa-solid fa-circle-info"></i></button>
                 </h3>
-                <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+                <div class="flex items-center gap-3">
+                    <span id="scan-preview-count-badge" class="hidden accent-bg text-white text-xs font-bold px-3 py-1 rounded-full accent-shadow" style="animation: badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);"></span>
+                    <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="flex-1 overflow-y-auto space-y-3 pb-4 hide-scrollbar" id="scan-preview-list"></div>
             <div class="pt-4 mt-auto border-t border-subtle flex flex-col gap-3 flex-shrink-0">
@@ -798,6 +832,7 @@
 
             settings_scan_counter:'Scans verwendet',
             toast_word_pairs_saved: (n) => `${n} Wortpaare extrahiert`,
+            scan_preview_count_badge: (n) => `${n} Paare`,
             settings_import:      'Backup importieren',
             settings_export:      'Backup exportieren',
             settings_legal:       'Impressum und Datenschutz',
@@ -913,6 +948,7 @@
 
             settings_scan_counter:'Scans used',
             toast_word_pairs_saved: (n) => `${n} word pairs extracted`,
+            scan_preview_count_badge: (n) => `${n} pairs`,
             settings_import:      'Import backup',
             settings_export:      'Export backup',
             settings_legal:       'Legal Notice & Privacy',
@@ -1384,17 +1420,63 @@
         if (box) box.classList.add('hidden');
     }
 
+    // ── Scan deck chip-dropdown multiselect ──
+    let _scanDeckDropdownOpen = false;
+
     function populateScanDeckSelector() {
-        const container = document.getElementById('scan-target-deck-container');
-        if (!container) return;
+        const optionsEl = document.getElementById('scan-deck-options');
+        if (!optionsEl) return;
         const filtered = decks.filter(d => d.id !== 'difficult_deck');
-        container.innerHTML = filtered.map((d, i) => `
-            <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:accent-light transition select-none">
-                <input type="checkbox" class="scan-deck-checkbox accent-ring" value="${d.id}" ${i === 0 ? 'checked' : ''} style="accent-color:var(--color-primary);width:1rem;height:1rem;flex-shrink:0;">
-                <span class="truncate">${escapeHtml(d.name)} <span class="text-muted">(${d.words.length} ${t('deck_words_suffix')})</span></span>
+        optionsEl.innerHTML = filtered.map((d, i) => `
+            <label class="deck-option-row">
+                <input type="checkbox" class="scan-deck-checkbox" value="${d.id}" ${i === 0 ? 'checked' : ''}>
+                <span class="text-sm truncate flex-1">${escapeHtml(d.name)}</span>
+                <span class="text-muted text-xs flex-shrink-0">${d.words.length} ${t('deck_words_suffix')}</span>
             </label>
         `).join('');
+        // Bind change listeners to update chips
+        optionsEl.querySelectorAll('.scan-deck-checkbox').forEach(cb => {
+            cb.addEventListener('change', _updateScanDeckChips);
+        });
+        _updateScanDeckChips();
     }
+
+    function _updateScanDeckChips() {
+        const chipsEl = document.getElementById('scan-deck-chips');
+        if (!chipsEl) return;
+        const checked = document.querySelectorAll('.scan-deck-checkbox:checked');
+        if (checked.length === 0) {
+            chipsEl.innerHTML = `<span class="text-muted text-xs">–</span>`;
+            return;
+        }
+        chipsEl.innerHTML = Array.from(checked).map(cb => {
+            const label = cb.closest('label');
+            const name = label ? label.querySelector('span.flex-1')?.textContent : cb.value;
+            return `<span class="deck-chip" title="${escapeHtml(name || '')}">${escapeHtml(name || '')}</span>`;
+        }).join('');
+    }
+
+    function toggleScanDeckDropdown() {
+        const dropdown = document.getElementById('scan-deck-dropdown');
+        const chevron  = document.getElementById('scan-deck-chevron');
+        if (!dropdown) return;
+        _scanDeckDropdownOpen = !_scanDeckDropdownOpen;
+        dropdown.classList.toggle('hidden', !_scanDeckDropdownOpen);
+        if (chevron) chevron.style.transform = _scanDeckDropdownOpen ? 'rotate(180deg)' : '';
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('scan-deck-multiselect')?.contains(e.target)) {
+            const dropdown = document.getElementById('scan-deck-dropdown');
+            const chevron  = document.getElementById('scan-deck-chevron');
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                dropdown.classList.add('hidden');
+                if (chevron) chevron.style.transform = '';
+                _scanDeckDropdownOpen = false;
+            }
+        }
+    });
 
     let _scanImageBase64 = null;
 
@@ -1529,6 +1611,17 @@
     function renderScanPreview() {
         const list = document.getElementById('scan-preview-list');
         list.innerHTML = '';
+
+        // Zähler-Badge anzeigen
+        const badge = document.getElementById('scan-preview-count-badge');
+        if (badge && pendingScanPairs.length > 0) {
+            badge.textContent = t('scan_preview_count_badge')(pendingScanPairs.length);
+            badge.classList.remove('hidden');
+            // Re-trigger animation
+            badge.style.animation = 'none';
+            badge.offsetHeight; // reflow
+            badge.style.animation = 'badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+        }
         const frontLabel = currentLang === 'de' ? 'Vorne' : 'Front';
         const backLabel  = currentLang === 'de' ? 'Rück'  : 'Back';
         const labelStyle = 'display:block;width:3.2rem;text-align:center;font-size:0.65rem;font-weight:700;padding:0.15rem 0;border-radius:0.35rem;letter-spacing:0.03em;white-space:nowrap;';
@@ -1566,6 +1659,8 @@
 
     function closeScanPreview() {
         document.getElementById('scan-preview-modal').classList.add('hidden');
+        const badge = document.getElementById('scan-preview-count-badge');
+        if (badge) badge.classList.add('hidden');
         pendingScanPairs = [];
         pendingDeckIds = [];
     }
