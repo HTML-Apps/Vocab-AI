@@ -646,19 +646,26 @@
                     <span data-i18n="scan_preview_title"></span>
                     <button onclick="showScanInfoBanner()" class="accent-text opacity-60 hover:opacity-100 transition text-base leading-none"><i class="fa-solid fa-circle-info"></i></button>
                 </h3>
-                <div class="flex items-center gap-3">
-                    <span id="scan-preview-count-badge" class="hidden accent-bg text-white text-xs font-bold px-3 py-1 rounded-full accent-shadow" style="animation: badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);"></span>
-                    <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
-                </div>
+                <button onclick="closeScanPreview()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="flex-1 overflow-y-auto space-y-3 pb-4 hide-scrollbar" id="scan-preview-list"></div>
-            <div class="pt-4 mt-auto border-t border-subtle flex flex-col gap-3 flex-shrink-0">
+            <!-- Footer mit schwebender Badge mittig über dem Tauschen-Button -->
+            <div class="pt-4 mt-auto border-t border-subtle flex-shrink-0" style="position:relative;">
+                <!-- Schwebende Zähler-Badge -->
+                <span id="scan-preview-count-badge"
+                    class="hidden accent-bg text-white text-xs font-bold px-3 py-1 rounded-full"
+                    style="position:absolute; top:-0.85rem; left:50%; transform:translateX(-50%);
+                           box-shadow: 0 4px 18px var(--color-primary-shadow), 0 1px 4px rgba(0,0,0,0.18);
+                           white-space:nowrap; animation: badgePop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+                           pointer-events:none; z-index:10;"></span>
+                <div class="flex flex-col gap-3">
                 <button onclick="swapScanPreview()" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition">
                     <i class="fa-solid fa-arrows-rotate accent-text"></i> <span data-i18n="scan_preview_swap"></span>
                 </button>
                 <button onclick="confirmScanPreview()" class="w-full accent-bg accent-bg-hover text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 accent-shadow active:scale-95 transition">
                     <i class="fa-solid fa-check"></i> <span data-i18n="scan_preview_confirm"></span>
                 </button>
+                </div>
             </div>
         </div>
     </div>
