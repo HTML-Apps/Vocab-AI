@@ -370,7 +370,7 @@
 
             <div class="mb-4">
                 <label class="text-xs font-semibold text-muted uppercase tracking-wider mb-1 block" data-i18n="scan_deck_label"></label>
-                <select id="scan-target-deck" class="w-full bg-card border border-subtle rounded-xl px-4 py-3 text-sm font-medium accent-ring focus:outline-none dark:bg-slate-800"></select>
+                <div id="scan-target-deck-container" class="w-full bg-card border border-subtle rounded-xl px-2 py-1 text-sm font-medium dark:bg-slate-800 max-h-32 overflow-y-auto hide-scrollbar space-y-0.5"></div>
             </div>
 
             <input type="file" id="scan-file-input" class="hidden" accept="image/*" capture="environment" onchange="handleImageSelected(event)">
@@ -590,6 +590,10 @@
                 <span class="font-medium text-sm" data-i18n="settings_scan_counter"></span>
                 <span id="settings-scan-count" class="text-sm font-bold accent-text">0 / 200</span>
             </div>
+            <div class="flex justify-between items-center py-3 border-b border-subtle">
+                <span class="font-medium text-sm" data-i18n="settings_legal"></span>
+                <button onclick="openLegalModal()" class="accent-text text-sm"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
             <div class="pt-4 space-y-3">
                 <button onclick="triggerImport(); closeSettingsModal();" class="w-full bg-slate-100 dark:bg-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2">
                     <i class="fa-solid fa-upload accent-text"></i> <span data-i18n="settings_import"></span>
@@ -643,6 +647,38 @@
                     <i class="fa-solid fa-crop-simple"></i> <span data-i18n="crop_confirm"></span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- ═══ LEGAL MODAL ═══ -->
+    <div id="legal-modal" class="modal-overlay hidden" style="z-index: 80;" onclick="closeLegalOnBackdrop(event)">
+        <div class="modal-sheet flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-5 flex-shrink-0">
+                <h3 class="text-lg font-bold" data-i18n="legal_title"></h3>
+                <button onclick="closeLegalModal()" class="text-muted hover:accent-text text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto hide-scrollbar space-y-5 pb-4 text-sm">
+                <div>
+                    <h4 class="font-bold mb-2 accent-text" data-i18n="legal_imprint_heading"></h4>
+                    <p class="text-muted leading-relaxed whitespace-pre-line" data-i18n="legal_imprint_body"></p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 accent-text" data-i18n="legal_privacy_heading"></h4>
+                    <p class="text-muted leading-relaxed whitespace-pre-line" data-i18n="legal_privacy_body"></p>
+                </div>
+            </div>
+            <div class="pt-4 mt-auto border-t border-subtle flex-shrink-0">
+                <button onclick="closeLegalModal()" class="w-full accent-bg accent-bg-hover text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 accent-shadow active:scale-95 transition" data-i18n="legal_close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TOAST NOTIFICATION ═══ -->
+    <div id="save-toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-[200] pointer-events-none"
+         style="transition: opacity 0.3s, transform 0.3s; opacity:0; transform: translateX(-50%) translateY(8px);">
+        <div class="bg-slate-800 dark:bg-white text-white dark:text-slate-900 text-sm font-bold px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-check-circle accent-text"></i>
+            <span id="save-toast-text"></span>
         </div>
     </div>
 
@@ -761,8 +797,16 @@
             scan_error_no_key: 'Bitte gib deinen Lizenzschlüssel in den Einstellungen ein.',
 
             settings_scan_counter:'Scans verwendet',
+            toast_word_pairs_saved: (n) => `${n} Wortpaare extrahiert`,
             settings_import:      'Backup importieren',
             settings_export:      'Backup exportieren',
+            settings_legal:       'Impressum und Datenschutz',
+            legal_title:          'Impressum & Datenschutz',
+            legal_imprint_heading: 'Impressum',
+            legal_imprint_body:   'Angaben gemäß § 5 TMG.\nDiese App ist ein privates Projekt und wird ohne kommerzielle Absichten betrieben. Für Fragen wende dich an: info@focus-flashcards.app',
+            legal_privacy_heading: 'Datenschutzerklärung',
+            legal_privacy_body:   'Diese App speichert alle Daten ausschließlich lokal auf deinem Gerät (IndexedDB / LocalStorage). Es werden keine personenbezogenen Daten an Server übertragen oder an Dritte weitergegeben. Die KI-Scan-Funktion sendet ausschließlich das von dir ausgewählte Bild zur Analyse und speichert dieses nicht dauerhaft.',
+            legal_close:          'Schließen',
             deck_words_suffix:    'Wörter',
             alert_import_success: (n) => `Erfolgreich importiert! ${n} neue Wortpaare.`,
             alert_import_legacy:  (n, name) => `${n} Wortpaare in "${name}" importiert und konvertiert.`,
@@ -868,8 +912,16 @@
             scan_error_no_key: 'Please enter your license key in settings.',
 
             settings_scan_counter:'Scans used',
+            toast_word_pairs_saved: (n) => `${n} word pairs extracted`,
             settings_import:      'Import backup',
             settings_export:      'Export backup',
+            settings_legal:       'Legal Notice & Privacy',
+            legal_title:          'Legal Notice & Privacy',
+            legal_imprint_heading: 'Legal Notice',
+            legal_imprint_body:   'This app is a private project operated without commercial intent. For questions, contact: info@focus-flashcards.app',
+            legal_privacy_heading: 'Privacy Policy',
+            legal_privacy_body:   'This app stores all data exclusively on your device (IndexedDB / LocalStorage). No personal data is transmitted to servers or shared with third parties. The AI scan feature only sends the image you select for analysis and does not store it permanently.',
+            legal_close:          'Close',
             deck_words_suffix:    'words',
             alert_import_success: (n) => `Successfully imported! ${n} new words.`,
             alert_import_legacy:  (n, name) => `${n} words imported and converted in "${name}".`,
@@ -1041,7 +1093,7 @@
     let currentDetailDeckId  = null;
 
     let pendingScanPairs = [];
-    let pendingDeckId = null;
+    let pendingDeckIds = [];
 
     // ══════════════════════════════════════════════
     //  Init
@@ -1186,6 +1238,13 @@
         }
     }
 
+    function openLegalModal() {
+        document.getElementById('legal-modal').classList.remove('hidden');
+        applyTranslations();
+    }
+    function closeLegalModal() { document.getElementById('legal-modal').classList.add('hidden'); }
+    function closeLegalOnBackdrop(e) { if (e.target === document.getElementById('legal-modal')) closeLegalModal(); }
+
     function openSettingsModal() {
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
@@ -1326,11 +1385,15 @@
     }
 
     function populateScanDeckSelector() {
-        const sel = document.getElementById('scan-target-deck');
-        if (!sel) return;
-        sel.innerHTML = decks.filter(d => d.id !== 'difficult_deck').map(d =>
-            `<option value="${d.id}">${escapeHtml(d.name)} (${d.words.length} ${t('deck_words_suffix')})</option>`
-        ).join('');
+        const container = document.getElementById('scan-target-deck-container');
+        if (!container) return;
+        const filtered = decks.filter(d => d.id !== 'difficult_deck');
+        container.innerHTML = filtered.map((d, i) => `
+            <label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:accent-light transition select-none">
+                <input type="checkbox" class="scan-deck-checkbox accent-ring" value="${d.id}" ${i === 0 ? 'checked' : ''} style="accent-color:var(--color-primary);width:1rem;height:1rem;flex-shrink:0;">
+                <span class="truncate">${escapeHtml(d.name)} <span class="text-muted">(${d.words.length} ${t('deck_words_suffix')})</span></span>
+            </label>
+        `).join('');
     }
 
     let _scanImageBase64 = null;
@@ -1428,8 +1491,10 @@
             const pairs = data.pairs;
             if (!Array.isArray(pairs) || pairs.length === 0) throw new Error(t('scan_no_vocab'));
 
-            const sel = document.getElementById('scan-target-deck');
-            pendingDeckId = sel ? parseInt(sel.value) : (decks.length > 0 ? decks[0].id : null);
+            const checked = document.querySelectorAll('.scan-deck-checkbox:checked');
+            pendingDeckIds = checked.length > 0
+                ? Array.from(checked).map(cb => parseInt(cb.value))
+                : (decks.length > 0 ? [decks[0].id] : []);
 
             pendingScanPairs = pairs.map((p, i) => ({
                 id: Date.now() + i,
@@ -1471,22 +1536,18 @@
             const item = document.createElement('div');
             item.className = 'bg-card rounded-2xl border border-subtle overflow-hidden';
             item.innerHTML = `
-                <div class="flex items-stretch">
-                    <div class="flex flex-col flex-shrink-0 border-r border-subtle" style="width:3.8rem;">
-                        <div class="flex-1 flex items-center justify-center border-b border-subtle px-1 py-2">
-                            <span style="${labelStyle}background:#475569;color:#fff;">${escapeHtml(frontLabel)}</span>
-                        </div>
-                        <div class="flex-1 flex items-center justify-center px-1 py-2">
-                            <span style="${labelStyle}background:var(--color-primary);color:#fff;">${escapeHtml(backLabel)}</span>
-                        </div>
+                <div style="display:grid;grid-template-columns:3.8rem 1fr;">
+                    <div class="flex items-center justify-center border-r border-b border-subtle px-1 py-2">
+                        <span style="${labelStyle}background:#475569;color:#fff;">${escapeHtml(frontLabel)}</span>
                     </div>
-                    <div class="flex flex-col flex-1 min-w-0">
-                        <div class="flex-1 flex items-center px-3 py-2 border-b border-subtle">
-                            <p class="font-bold text-sm leading-snug">${escapeHtml(p.front)}</p>
-                        </div>
-                        <div class="flex-1 flex items-center px-3 py-2">
-                            <p class="text-muted text-sm leading-snug">${escapeHtml(p.back)}</p>
-                        </div>
+                    <div class="flex items-center px-3 py-2 border-b border-subtle min-w-0">
+                        <p class="font-bold text-sm leading-snug">${escapeHtml(p.front)}</p>
+                    </div>
+                    <div class="flex items-center justify-center border-r border-subtle px-1 py-2">
+                        <span style="${labelStyle}background:var(--color-primary);color:#fff;">${escapeHtml(backLabel)}</span>
+                    </div>
+                    <div class="flex items-center px-3 py-2 min-w-0">
+                        <p class="text-muted text-sm leading-snug">${escapeHtml(p.back)}</p>
                     </div>
                 </div>
             `;
@@ -1506,20 +1567,46 @@
     function closeScanPreview() {
         document.getElementById('scan-preview-modal').classList.add('hidden');
         pendingScanPairs = [];
+        pendingDeckIds = [];
+    }
+
+    function showSaveToast(count) {
+        const toast = document.getElementById('save-toast');
+        const text  = document.getElementById('save-toast-text');
+        if (!toast || !text) return;
+        text.textContent = t('toast_word_pairs_saved')(count);
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(8px)';
+        }, 2500);
     }
 
     async function confirmScanPreview() {
-        let deck = decks.find(d => d.id === pendingDeckId);
-        if (!deck) {
-            deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
-        }
-        deck.words = [...deck.words, ...pendingScanPairs];
-        await saveDeck(deck);
-        await saveState();
+        const savedCount = pendingScanPairs.length;
+        let lastDeckId = null;
 
+        const targetIds = pendingDeckIds.length > 0 ? pendingDeckIds : (decks.length > 0 ? [decks[0].id] : []);
+
+        for (const deckId of targetIds) {
+            let deck = decks.find(d => d.id === deckId);
+            if (!deck) {
+                deck = { id: Date.now(), name: currentLang === 'de' ? 'Neue Liste' : 'New List', words: [] };
+            }
+            deck.words = [...deck.words, ...pendingScanPairs.map(p => ({ ...p, id: Date.now() + Math.random() }))];
+            await saveDeck(deck);
+            lastDeckId = deck.id;
+        }
+
+        await saveState();
         closeScanPreview();
-        currentDetailDeckId = deck.id;
-        switchView('deck-detail');
+        showSaveToast(savedCount);
+        if (lastDeckId) {
+            currentDetailDeckId = lastDeckId;
+            switchView('deck-detail');
+        }
     }
 
     // ══════════════════════════════════════════════
