@@ -848,9 +848,53 @@
             settings_legal:       'Impressum und Datenschutz',
             legal_title:          'Impressum & Datenschutz',
             legal_imprint_heading: 'Impressum',
-            legal_imprint_body:   'Angaben gemäß § 5 TMG.\nDiese App ist ein privates Projekt und wird ohne kommerzielle Absichten betrieben. Für Fragen wende dich an: info@focus-flashcards.app',
+            legal_imprint_body: `Angaben gemäß § 5 TMG
+
+Hendrik Junker
+[Deine Straße / Straße des Impressumsservice]
+[PLZ Ort / PLZ Ort des Impressumsservice]
+
+<strong>Kontakt:</strong>
+E-Mail: jhe3ho@bosch.com`,
             legal_privacy_heading: 'Datenschutzerklärung',
-            legal_privacy_body:   'Diese App speichert alle Daten ausschließlich lokal auf deinem Gerät (IndexedDB / LocalStorage). Es werden keine personenbezogenen Daten an Server übertragen oder an Dritte weitergegeben. Die KI-Scan-Funktion sendet ausschließlich das von dir ausgewählte Bild zur Analyse und speichert dieses nicht dauerhaft.',
+            legal_privacy_body: `<strong>Verantwortlicher</strong>
+Verantwortlicher im Sinne der Datenschutzgesetze, insbesondere der EU-Datenschutz-Grundverordnung (DSGVO), ist Hendrik Junker (Kontaktdaten siehe Impressum).
+
+<strong>Ihre Betroffenenrechte</strong>
+Unter den angegebenen Kontaktdaten können Sie gemäß DSGVO jederzeit folgende Rechte ausüben:
+• Auskunft über Ihre bei uns gespeicherten Daten (Art. 15 DSGVO)
+• Berichtigung unrichtiger personenbezogener Daten (Art. 16 DSGVO)
+• Löschung Ihrer bei uns gespeicherten Daten (Art. 17 DSGVO)
+• Einschränkung der Datenverarbeitung (Art. 18 DSGVO)
+• Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)
+• Datenübertragbarkeit (Art. 20 DSGVO)
+
+Sofern Sie uns eine Einwilligung erteilt haben, können Sie diese jederzeit mit Wirkung für die Zukunft widerrufen. Sie können sich jederzeit mit einer Beschwerde an die zuständige Aufsichtsbehörde wenden.
+
+<strong>Verarbeitungstätigkeiten und genutzte Dienste</strong>
+
+<strong>Lokale Datenspeicherung (IndexedDB)</strong>
+Ihre erstellten Karteikarten, Decks und Lernfortschritte werden standardmäßig lokal im Speicher Ihres Browsers (IndexedDB) abgelegt. Diese Daten verbleiben auf Ihrem Endgerät und werden nicht auf unsere Server hochgeladen oder mit Dritten geteilt, es sei denn, Sie nutzen explizit Export-Funktionen.
+
+<strong>Hosting und Logfiles</strong>
+Beim Aufruf dieser Web-App erfasst der Server unseres Hosting-Anbieters automatisch allgemeine Verbindungsdaten (u.a. IP-Adresse, Datum, Uhrzeit, Browser), um die Sicherheit und Stabilität zu gewährleisten. Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO).
+
+<strong>Nutzung von OpenAI zur Textextraktion</strong>
+Wenn Sie die Scan-Funktion nutzen, werden Rohdaten über eine API an die Server von OpenAI (OpenAI Ireland Ltd., Dublin) übertragen. Dies dient unserem berechtigten Interesse (Art. 6 Abs. 1 lit. f DSGVO), Ihnen die KI-Funktion anzubieten. Laut den OpenAI-Richtlinien werden diese Daten nicht zum Training der Modelle verwendet.
+
+<strong>Zahlungsabwicklung und Lizenzen (Lemon Squeezy)</strong>
+Für den Verkauf von Lizenzen und deren Überprüfung nutzen wir Lemon Squeezy (Lemon Squeezy, LLC, USA). Wenn Sie eine Lizenz erwerben oder validieren, werden erforderliche Daten (z. B. IP-Adresse, E-Mail, Lizenzschlüssel) übermittelt. Die Verarbeitung erfolgt zur Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO).
+
+<strong>Scan-Limit-Verwaltung (Upstash)</strong>
+Zur Verwaltung von Scan-Limits und Vermeidung von Missbrauch nutzen wir Upstash (Upstash Inc., USA). Hierbei können Nutzungsdaten (z. B. gehashte IPs oder Lizenzschlüssel) verarbeitet werden. Rechtsgrundlage ist unser berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO).
+
+<strong>Kontaktaufnahme</strong>
+Wenn Sie per E-Mail Kontakt aufnehmen, werden Ihre Angaben zur Bearbeitung der Anfrage gespeichert (Art. 6 Abs. 1 lit. a bzw. b DSGVO).
+
+<strong>Einzelfallbezogenes Widerspruchsrecht</strong>
+Sie haben das Recht, jederzeit gegen die Verarbeitung Sie betreffender personenbezogener Daten Widerspruch einzulegen. Ihren Widerspruch richten Sie bitte per E-Mail an den Verantwortlichen.
+
+<em>Diese Datenschutzerklärung basiert in Teilen auf einem Text der activeMind AG.</em>`,
             legal_close:          'Schließen',
             deck_words_suffix:    'Wörter',
             alert_import_success: (n) => `Erfolgreich importiert! ${n} neue Wortpaare.`,
@@ -1004,7 +1048,7 @@
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
             const val = t(key);
-            if (typeof val === 'string') el.textContent = val;
+            if (typeof val === 'string') el.innerHTML = val;
         });
 
         document.querySelectorAll('[data-i18n-title]').forEach(el => {
