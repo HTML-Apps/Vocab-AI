@@ -841,6 +841,7 @@
             settings_license_buy: 'Hier kaufen',
             settings_license_placeholder: 'z.B. FOCS-ABCD-1234',
             scan_error_no_key: 'Bitte gib deinen Lizenzschlüssel in den Einstellungen ein.',
+            scan_error_limit_reached: 'Kostenlose Scans aufgebraucht. Bitte gib einen Lizenzschlüssel ein.',
 
             settings_scan_counter:'Scans verwendet',
             toast_word_pairs_saved: (n) => `${n} Wortpaare extrahiert`,
@@ -999,6 +1000,7 @@ Sie haben das Recht, jederzeit gegen die Verarbeitung Sie betreffender personenb
             settings_license_buy: 'Buy here',
             settings_license_placeholder: 'e.g. FOCS-ABCD-1234',
             scan_error_no_key: 'Please enter your license key in settings.',
+            scan_error_limit_reached: 'Free scans exhausted. Please enter a license key.',
 
             settings_scan_counter:'Scans used',
             toast_word_pairs_saved: (n) => `${n} word pairs extracted`,
@@ -1384,7 +1386,15 @@ You have the right to object at any time to the processing of personal data conc
         applyTheme();
         _updateLangButtons(currentLang);
         const scanCountEl = document.getElementById('settings-scan-count');
-        if (scanCountEl) scanCountEl.textContent = `${appState.scanCount || 0} / 200`;
+        if (scanCountEl) {
+            const hasKey = !!(localStorage.getItem('focus_license_key') || '').trim();
+            const count = appState.scanCount || 0;
+            if (hasKey) {
+                scanCountEl.textContent = `${count} / 200 (Premium)`;
+            } else {
+                scanCountEl.textContent = `${count} / 5 (Kostenlos)`;
+            }
+        }
 
         // NEU: Lizenzschlüssel laden
         const savedKey = localStorage.getItem('focus_license_key');
@@ -1634,12 +1644,16 @@ You have the right to object at any time to the processing of personal data conc
     async function startAIScan() {
         if (!_scanImageBase64) { setScanError(t('scan_no_image')); return; }
 
-        // NEU: Lizenzschlüssel prüfen
-        const licenseKey = localStorage.getItem('focus_license_key');
+        // Lizenzschlüssel und Free-Trial-Logik
+        const licenseKey = localStorage.getItem('focus_license_key') || '';
+        const FREE_TRIAL_LIMIT = 5;
         if (!licenseKey) {
-            setScanError(t('scan_error_no_key'));
-            openSettingsModal(); // Öffnet direkt die Einstellungen
-            return;
+            if ((appState.scanCount || 0) >= FREE_TRIAL_LIMIT) {
+                setScanError(t('scan_error_limit_reached'));
+                openSettingsModal();
+                return;
+            }
+            // Free Trial: Scan erlaubt (scanCount < 5)
         }
 
         const loader     = document.getElementById('scan-loader');
@@ -1659,7 +1673,7 @@ You have the right to object at any time to the processing of personal data conc
                 // NEU: Authorization Header hinzugefügt
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${licenseKey}`
+                    'Authorization': `Bearer ${licenseKey || 'FREE_TRIAL'}`
                 },
                 body: JSON.stringify({ image: _scanImageBase64 }),
             });
