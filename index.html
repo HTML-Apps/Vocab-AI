@@ -1110,6 +1110,7 @@ You have the right to object at any time to the processing of personal data conc
         applyTheme();
         updateGoalUI();
         checkBackupStatus();
+        updateScanCounterUI();
 
         const activeView = document.querySelector('.view:not(.hidden)');
         if (activeView) {
@@ -1384,23 +1385,26 @@ You have the right to object at any time to the processing of personal data conc
     function closeLegalModal() { document.getElementById('legal-modal').classList.add('hidden'); }
     function closeLegalOnBackdrop(e) { if (e.target === document.getElementById('legal-modal')) closeLegalModal(); }
 
+    function updateScanCounterUI() {
+        const scanCountEl = document.getElementById('settings-scan-count');
+        if (!scanCountEl) return;
+        const hasKey = !!(localStorage.getItem('focus_license_key') || '').trim();
+        const count  = appState.scanCount || 0;
+        if (hasKey) {
+            scanCountEl.textContent = t('settings_scan_premium')(count, 200);
+        } else {
+            scanCountEl.textContent = t('settings_scan_free')(count, 5);
+        }
+    }
+
     function openSettingsModal() {
         document.getElementById('settings-modal').classList.remove('hidden');
         updateAccentDots();
         applyTheme();
         _updateLangButtons(currentLang);
-        const scanCountEl = document.getElementById('settings-scan-count');
-        if (scanCountEl) {
-            const hasKey = !!(localStorage.getItem('focus_license_key') || '').trim();
-            const count  = appState.scanCount || 0;
-            if (hasKey) {
-                scanCountEl.textContent = t('settings_scan_premium')(count, 200);
-            } else {
-                scanCountEl.textContent = t('settings_scan_free')(count, 5);
-            }
-        }
+        updateScanCounterUI();
 
-        // NEU: Lizenzschlüssel laden
+        // Lizenzschlüssel laden
         const savedKey = localStorage.getItem('focus_license_key');
         if (savedKey) {
             document.getElementById('license-key-input').value = savedKey;
