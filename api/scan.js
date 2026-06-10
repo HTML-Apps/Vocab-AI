@@ -1,135 +1,262 @@
 // /api/scan.js  –  Vercel Serverless Function (Node.js)
-// STRICT LIVE-MODUS (mit Master-Key-Ausnahme)
+//
+// Env vars required:
+//   OPENAI_API_KEY           – OpenAI API key
+//   UPSTASH_REDIS_REST_URL   – e.g. https://xxx.upstash.io
+//   UPSTASH_REDIS_REST_TOKEN – Upstash REST token
+//   KV_REST_API_URL          – Upstash KV URL  (für Lizenz-Keys)
+//   KV_REST_API_TOKEN        – Upstash KV token (für Lizenz-Keys)
+//   SECRET_MASTER_KEY        – Dein eigener Test-Key (unbegrenzte Scans)
 
+// ── Vercel Body-Size-Limit (wichtig für Base64-Bilder!) ────────────────────
 export const config = {
   api: { bodyParser: { sizeLimit: '4mb' } },
 };
 
+const FREE_TRIAL_LIMIT = 5;
+
+// ── System-Prompt für OpenAI ───────────────────────────────────────────────
+const SYSTEM_PROMPT = `Du bist ein präziser Daten-Extraktor für Lernkarten.
+Analysiere das Bild dieser Lernseite (Tabelle, Liste oder Vokabeln).
+Ignoriere rein dekorative Elemente, Trennlinien, Icons und Seitenzahlen.
+
+Extrahiere die Paare bestehend aus dem Begriff/Wort und der dazugehörigen Übersetzung oder Erklärung:
+- "front": Das Ursprungswort, die Phrase oder der medizinische Fachbegriff (inkl. eventueller Abkürzungen).
+- "back": Die Übersetzung, die Definition oder der vollständige Erklärungstext.
+
+Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück.
+Format: [{"front": "Begriff", "back": "Erklärung/Übersetzung"}, ...]
+Kein erklärender Text, keine Markdown-Blöcke (keine \`\`\`json Formatierung), nur das reine, valide JSON-Array. Achte darauf, Anführungszeichen im Text korrekt zu escapen.`;
+
+// ── Upstash Redis: INCR (für Free-Trial IP-Zähler) ────────────────────────
+async function redisIncr(key) {
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  const res = await fetch(`${url}/incr/${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Upstash INCR failed: ${res.status}`);
+  const json = await res.json();
+  return json.result; // number
+}
+
+// ── Upstash KV: GET/SET/DECR (für Lizenz-Key Scan-Konten) ─────────────────
+async function kvGet(key) {
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  const res   = await fetch(`${url}/get/${key}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`KV GET failed: ${res.status}`);
+  const json = await res.json();
+  return json.result; // string | null
+}
+
+async function kvSet(key, value) {
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  await fetch(`${url}/set/${key}/${value}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+async function kvDecr(key) {
+  const url   = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  const res   = await fetch(`${url}/decr/${key}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`KV DECR failed: ${res.status}`);
+  const json = await res.json();
+  return json.result; // number
+}
+
+// ── IP-Adresse des Clients ermitteln ──────────────────────────────────────
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+// ── Lemon Squeezy Lizenz validieren ───────────────────────────────────────
+async function validateLemonSqueezy(licenseKey) {
+  const res = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
+    method: 'POST',
+    headers: {
+      'Accept':       'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({ license_key: licenseKey }),
+  });
+  const data = await res.json();
+  return data.valid === true;
+}
+
+// ── Haupt-Handler ──────────────────────────────────────────────────────────
 export default async function handler(req, res) {
+  // CORS (wichtig wenn PWA und API auf unterschiedlichen Domains laufen)
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== 'POST')   return res.status(405).json({ error: 'Method Not Allowed' });
 
+  // OpenAI-Key prüfen
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API-Key fehlt.' });
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Lizenzschlüssel fehlt im Header.' });
-  }
-  const licenseKey = authHeader.split(' ')[1].trim();
+  // Authorization-Header auslesen
+  const authHeader = req.headers['authorization'] || '';
+  const licenseKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
 
-  // ── 1.5 DIE MASTER-KEY WHITELIST (SICHER ÜBER VERCEL) ──────────
-  const isMasterKey = (licenseKey === process.env.SECRET_MASTER_KEY);
+  // Modus bestimmen
+  const isMasterKey   = licenseKey === process.env.SECRET_MASTER_KEY;
+  const isFreeTrial   = !licenseKey || licenseKey === 'FREE_TRIAL';
+  const isPaidLicense = !isMasterKey && !isFreeTrial;
 
-  console.log(`[API START] Key empfangen: "${licenseKey}". Ist Master-Key? ${isMasterKey}`);
+  console.log(`[API START] Key: "${licenseKey}" | Master: ${isMasterKey} | FreeTrial: ${isFreeTrial}`);
 
-  const kvUrl = process.env.KV_REST_API_URL;
-  const kvToken = process.env.KV_REST_API_TOKEN;
+  // Rückgabewerte für die Response
+  let usageCurrent   = null; // Free-Trial: aktueller IP-Zählerstand
+  let remainingScans = null; // Lizenz: verbleibende Scans (nach DECR)
 
   try {
-    let scansLeft = "Unlimited (Master Key)"; 
 
-    if (!isMasterKey) {
-      if (!kvUrl || !kvToken) return res.status(500).json({ error: 'Datenbank-Konfigurationsfehler.' });
+    // ════════════════════════════════════════════════════════════════
+    // A) FREE TRIAL – IP-basiertes Throttling via Redis INCR
+    // ════════════════════════════════════════════════════════════════
+    if (isFreeTrial) {
+      const ip       = getClientIp(req);
+      const redisKey = `free_trial_ip:${ip}`;
+      const count    = await redisIncr(redisKey);
 
-      // A: In Upstash (Redis) nachschauen
-      const getRes = await fetch(`${kvUrl}/get/license:${licenseKey}`, {
-        headers: { Authorization: `Bearer ${kvToken}` }
-      });
-      const getData = await getRes.json();
-      scansLeft = getData.result !== null ? parseInt(getData.result, 10) : null;
-      
-      console.log(`[UPSTASH GET] Scans für "${licenseKey}": ${scansLeft}`);
+      console.log(`[FREE TRIAL] IP: ${ip} | Zähler: ${count}/${FREE_TRIAL_LIMIT}`);
 
-      // B: Wenn neu (null) oder kaputt (NaN) -> Lemon Squeezy Validierung ERZWINGEN
-      if (scansLeft === null || isNaN(scansLeft)) {
-        console.log(`[LEMON SQUEEZY] Validiere neuen Key: "${licenseKey}"...`);
-        
-        const lsResponse = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
-          method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ license_key: licenseKey })
-        });
-        
-        const lsData = await lsResponse.json();
-        console.log(`[LEMON SQUEEZY] Antwort für "${licenseKey}": Valid = ${lsData.valid}`);
-        
-        // HARTE BLOCKADE: Wenn nicht valid, sofort abbrechen!
-        if (lsData.valid !== true) {
-           console.warn(`[BLOCKIERT] Ungültiger Key: "${licenseKey}"`);
-           return res.status(403).json({ error: 'Ungültiger oder abgelaufener Lizenzschlüssel.' });
-        }
+      if (count > FREE_TRIAL_LIMIT) {
+        return res.status(429).json({ error: 'LIMIT_REACHED' });
+      }
+      usageCurrent = count;
+    }
 
-        // Gültig! 200 Scans speichern
-        scansLeft = 200;
-        await fetch(`${kvUrl}/set/license:${licenseKey}/${scansLeft}`, {
-          headers: { Authorization: `Bearer ${kvToken}` }
-        });
-        console.log(`[UPSTASH SET] 200 Scans für "${licenseKey}" gespeichert.`);
+    // ════════════════════════════════════════════════════════════════
+    // B) PAID LICENSE – Lemon Squeezy + KV Scan-Konto
+    // ════════════════════════════════════════════════════════════════
+    if (isPaidLicense) {
+      const kvUrl   = process.env.KV_REST_API_URL;
+      const kvToken = process.env.KV_REST_API_TOKEN;
+      if (!kvUrl || !kvToken) {
+        return res.status(500).json({ error: 'Datenbank-Konfigurationsfehler.' });
       }
 
-      // C: Prüfen ob noch Scans übrig sind (und ob es überhaupt eine Zahl ist)
-      if (typeof scansLeft !== 'number' || scansLeft <= 0) {
+      // KV-Eintrag lesen
+      const raw     = await kvGet(`license:${licenseKey}`);
+      let scansLeft = raw !== null ? parseInt(raw, 10) : null;
+
+      console.log(`[KV GET] Scans für "${licenseKey}": ${scansLeft}`);
+
+      // Noch nicht bekannt → Lemon Squeezy validieren und 200 Scans anlegen
+      if (scansLeft === null || isNaN(scansLeft)) {
+        console.log(`[LEMON SQUEEZY] Validiere Key: "${licenseKey}"...`);
+        const valid = await validateLemonSqueezy(licenseKey);
+
+        if (!valid) {
+          console.warn(`[BLOCKIERT] Ungültiger Key: "${licenseKey}"`);
+          return res.status(403).json({ error: 'Ungültiger oder abgelaufener Lizenzschlüssel.' });
+        }
+
+        scansLeft = 200;
+        await kvSet(`license:${licenseKey}`, scansLeft);
+        console.log(`[KV SET] 200 Scans für "${licenseKey}" angelegt.`);
+      }
+
+      // Keine Scans mehr
+      if (scansLeft <= 0) {
         console.warn(`[BLOCKIERT] Keine Scans mehr für "${licenseKey}"`);
         return res.status(402).json({ error: 'Deine Scans sind aufgebraucht.' });
       }
     }
 
-    // --- BILD VERARBEITEN ---
-    const { image } = req.body;
-    if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt.' });
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+    // ════════════════════════════════════════════════════════════════
+    // C) MASTER KEY → keinerlei Checks, direkt weiter
+    // ════════════════════════════════════════════════════════════════
+    // (kein Code nötig – alle Checks oben werden übersprungen)
 
-    // --- OPENAI AUFRUFEN ---
-    console.log(`[OPENAI] Sende Bild an OpenAI für Key: "${licenseKey}"...`);
-    // const systemPrompt = 'Du bist ein Daten-Extraktor. Analysiere das Bild dieser Vokabelseite. Ignoriere Trennlinien, Seitenzahlen und Lautschrift in Klammern. Extrahiere die Wortpaare. Die Sprache kann variieren (oft Englisch/Deutsch, Spanisch/Deutsch, Jura-Begriffe etc.). Erkenne die Sprachen logisch. Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. Format: [{"front": "apple", "back": "Apfel"}, ...]. Kein erklärender Text, keine Markdown-Blöcke, nur das reine JSON-Array.';
-    const systemPrompt = `Du bist ein präziser Daten-Extraktor für Lernkarten. 
-      Analysiere das Bild dieser Lernseite (Tabelle, Liste oder Vokabeln). 
-      Ignoriere rein dekorative Elemente, Trennlinien, Icons und Seitenzahlen.
-      
-      Extrahiere die Paare bestehend aus dem Begriff/Wort und der dazugehörigen Übersetzung oder Erklärung:
-      - "front": Das Ursprungswort, die Phrase oder der medizinische Fachbegriff (inkl. eventueller Abkürzungen).
-      - "back": Die Übersetzung, die Definition oder der vollständige Erklärungstext.
-      
-      Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. 
-      Format: [{"front": "Begriff", "back": "Erklärung/Übersetzung"}, ...]
-      Kein erklärender Text, keine Markdown-Blöcke (keine \`\`\`json Formatierung), nur das reine, valide JSON-Array. Achte darauf, Anführungszeichen im Text korrekt zu escapen.`;
-    
+    // ── Bild aus Request-Body holen ────────────────────────────────
+    const { image } = req.body || {};
+    if (!image || typeof image !== 'string') {
+      return res.status(400).json({ error: 'Kein Bild übermittelt.' });
+    }
+    const base64Data = image.includes(',') ? image.split(',')[1] : image;
+
+    // ── OpenAI Vision aufrufen ─────────────────────────────────────
+    console.log(`[OPENAI] Sende Bild für Key: "${licenseKey}"...`);
+
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', max_tokens: 2048,
+        model:      'gpt-4o-mini',
+        max_tokens: 2048,
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: [{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Data}`, detail: 'high' } }, { type: 'text', text: 'Extrahiere alle Vokabelpaare aus diesem Bild als JSON-Array.' }] }
+          { role: 'system', content: SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: [
+              {
+                type:      'image_url',
+                image_url: { url: `data:image/jpeg;base64,${base64Data}`, detail: 'high' },
+              },
+              { type: 'text', text: 'Extrahiere alle Vokabelpaare aus diesem Bild als JSON-Array.' },
+            ],
+          },
         ],
       }),
     });
-    
-    if (!openAIResponse.ok) return res.status(502).json({ error: `OpenAI API Fehler: ${openAIResponse.status}` });
-    const openAIData = await openAIResponse.json();
-    const rawContent = openAIData.choices?.[0]?.message?.content || '[]';
-    
-    const cleaned = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    let vocabPairs;
-    try { vocabPairs = JSON.parse(cleaned); if (!Array.isArray(vocabPairs)) throw new Error(); } 
-    catch (e) { return res.status(422).json({ error: 'Ungültiges JSON.', raw: rawContent }); }
 
-    // --- SCAN ABZIEHEN ---
-    if (!isMasterKey) {
-      const decrRes = await fetch(`${kvUrl}/decr/license:${licenseKey}`, { headers: { Authorization: `Bearer ${kvToken}` } });
-      const decrData = await decrRes.json();
-      scansLeft = decrData.result; 
-      console.log(`[UPSTASH DECR] Verbleibende Scans für "${licenseKey}": ${scansLeft}`);
+    if (!openAIResponse.ok) {
+      return res.status(502).json({ error: `OpenAI API Fehler: ${openAIResponse.status}` });
     }
 
+    const openAIData = await openAIResponse.json();
+    const rawContent = openAIData.choices?.[0]?.message?.content || '[]';
+
+    // JSON parsen (Markdown-Fences entfernen falls vorhanden)
+    const cleaned = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    let pairs;
+    try {
+      pairs = JSON.parse(cleaned);
+      if (!Array.isArray(pairs)) throw new Error('Kein Array');
+    } catch {
+      return res.status(422).json({ error: 'Ungültiges JSON vom AI-Modell.', raw: rawContent });
+    }
+
+    // ── Scan abziehen (nur bei echten Lizenz-Keys) ─────────────────
+    if (isPaidLicense) {
+      remainingScans = await kvDecr(`license:${licenseKey}`);
+      console.log(`[KV DECR] Verbleibende Scans für "${licenseKey}": ${remainingScans}`);
+    }
+
+    // ── Erfolg-Response ────────────────────────────────────────────
     console.log(`[API SUCCESS] Erfolg für Key: "${licenseKey}"`);
-    return res.status(200).json({ pairs: vocabPairs, remaining_scans: scansLeft });
+
+    const responsePayload = { pairs };
+
+    // Free-Trial: Frontend bekommt echten IP-Zählerstand zum Synchronisieren
+    if (usageCurrent !== null) {
+      responsePayload.usage = { current: usageCurrent, limit: FREE_TRIAL_LIMIT };
+    }
+
+    // Lizenz: verbleibende Scans mitschicken
+    if (remainingScans !== null) {
+      responsePayload.remaining_scans = remainingScans;
+    }
+
+    return res.status(200).json(responsePayload);
 
   } catch (err) {
     console.error('[FATAL ERROR]', err);
