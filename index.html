@@ -844,6 +844,8 @@
             scan_error_limit_reached: 'Kostenlose Scans aufgebraucht. Bitte gib einen Lizenzschlüssel ein.',
 
             settings_scan_counter:'Scans verwendet',
+            settings_scan_free:    (used, limit) => `${used} / ${limit} (Kostenlos)`,
+            settings_scan_premium: (used, limit) => `${used} / ${limit} (Premium)`,
             toast_word_pairs_saved: (n) => `${n} Wortpaare extrahiert`,
             scan_preview_count_badge: (n) => `${n} Paare`,
             settings_import:      'Backup importieren',
@@ -1003,6 +1005,8 @@ Sie haben das Recht, jederzeit gegen die Verarbeitung Sie betreffender personenb
             scan_error_limit_reached: 'Free scans exhausted. Please enter a license key.',
 
             settings_scan_counter:'Scans used',
+            settings_scan_free:    (used, limit) => `${used} / ${limit} (Free)`,
+            settings_scan_premium: (used, limit) => `${used} / ${limit} (Premium)`,
             toast_word_pairs_saved: (n) => `${n} word pairs extracted`,
             scan_preview_count_badge: (n) => `${n} pairs`,
             settings_import:      'Import backup',
@@ -1388,11 +1392,11 @@ You have the right to object at any time to the processing of personal data conc
         const scanCountEl = document.getElementById('settings-scan-count');
         if (scanCountEl) {
             const hasKey = !!(localStorage.getItem('focus_license_key') || '').trim();
-            const count = appState.scanCount || 0;
+            const count  = appState.scanCount || 0;
             if (hasKey) {
-                scanCountEl.textContent = `${count} / 200 (Premium)`;
+                scanCountEl.textContent = t('settings_scan_premium')(count, 200);
             } else {
-                scanCountEl.textContent = `${count} / 5 (Kostenlos)`;
+                scanCountEl.textContent = t('settings_scan_free')(count, 5);
             }
         }
 
