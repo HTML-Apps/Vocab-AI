@@ -1678,8 +1678,17 @@ You have the right to object at any time to the processing of personal data conc
                 body: JSON.stringify({ image: _scanImageBase64 }),
             });
 
+            // HTTP 429 → Limit vom Backend erreicht
+            if (!response.ok) {
+                if (response.status === 429) {
+                    throw new Error('LIMIT_REACHED');
+                }
+                let errData = {};
+                try { errData = await response.json(); } catch (_) {}
+                throw new Error(errData.error || `HTTP ${response.status}`);
+            }
+
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
 
             const pairs = data.pairs;
             if (!Array.isArray(pairs) || pairs.length === 0) throw new Error(t('scan_no_vocab'));
@@ -1703,8 +1712,12 @@ You have the right to object at any time to the processing of personal data conc
             if (placeholder) { placeholder.classList.remove('hidden'); }
             scanBtn.disabled = true;
 
-            // Vorschau-Modul aufrufen
-            appState.scanCount = (appState.scanCount || 0) + 1;
+            // Scan-Zähler: bevorzugt echten Stand vom Backend übernehmen
+            if (data.usage && data.usage.current) {
+                appState.scanCount = data.usage.current;
+            } else {
+                appState.scanCount = (appState.scanCount || 0) + 1;
+            }
             await saveState();
             renderScanPreview();
             document.getElementById('scan-preview-modal').classList.remove('hidden');
@@ -1713,7 +1726,12 @@ You have the right to object at any time to the processing of personal data conc
             console.error('AI scan error:', err);
             loader.classList.add('hidden');
             scanBtn.disabled = false;
-            setScanError(err.message || t('scan_no_vocab'));
+            if (err.message === 'LIMIT_REACHED') {
+                setScanError(t('scan_error_limit_reached'));
+                openSettingsModal();
+            } else {
+                setScanError(err.message || t('scan_no_vocab'));
+            }
         }
     }
 
