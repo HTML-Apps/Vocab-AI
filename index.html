@@ -1324,17 +1324,9 @@ You have the right to object at any time to the processing of personal data conc
             const onboardingEl = document.getElementById('view-onboarding');
             onboardingEl.classList.remove('hidden');
             updateAccentDots();
-            updateOnboardingCTA();
-
-            // Falls nur neue AGB-Zustimmung nötig (bereits onboarded): CTA-Text anpassen
-            if (onboarded && !agbValid) {
-                const ctaBtn = onboardingEl.querySelector('[data-i18n="onboarding_cta"]');
-                if (ctaBtn) {
-                    ctaBtn.removeAttribute('data-i18n');
-                    const lang = document.documentElement.lang || 'de';
-                    ctaBtn.textContent = lang === 'de' ? 'Neue AGB akzeptieren' : 'Accept updated Terms';
-                }
-            }
+            
+            // Hier wird die gesamte Logik zentral ausgeführt
+            await updateOnboardingCTA(); 
         } else {
             showMainUI();
             const hasWords = decks.some(d => d.words.length > 0);
@@ -1343,23 +1335,24 @@ You have the right to object at any time to the processing of personal data conc
     }
 
     async function updateOnboardingCTA() {
-        const onboarded = await dbGet(STORE_META, 'onboarded');
-        const agbVersion = await dbGet(STORE_META, 'agb_version');
         const onboardingEl = document.getElementById('view-onboarding');
+        const ctaBtn = onboardingEl?.querySelector('#btn-finish-onboarding');
         
-        if (!onboardingEl) return;
-
-        const ctaBtn = onboardingEl.querySelector('#btn-finish-onboarding'); // Gib deinem Button eine ID!
         if (!ctaBtn) return;
 
-        // Logik: Brauchen wir das Update?
+        const onboarded = await dbGet(STORE_META, 'onboarded');
+        const agbVersion = await dbGet(STORE_META, 'agb_version');
+
+        // Wenn der Nutzer schon onboarded ist, aber die AGB-Version nicht stimmt
         if (onboarded && agbVersion !== CURRENT_AGB_VERSION) {
+            ctaBtn.removeAttribute('data-i18n'); // Wichtig: i18n-Update stoppen
             const lang = document.documentElement.lang || 'de';
             ctaBtn.textContent = lang === 'de' ? 'Neue AGB akzeptieren' : 'Accept updated Terms';
         } else {
-            // Fallback auf Standard-Übersetzung (wenn du i18n nutzt)
-            // ctaBtn.setAttribute('data-i18n', 'onboarding_cta');
-            // i18next.t('onboarding_cta'); // oder dein i18n-Aufruf
+            // Fallback: Wenn i18n aktiv ist, setze es wieder, damit es normal übersetzt wird
+            ctaBtn.setAttribute('data-i18n', 'onboarding_cta');
+            // Falls du eine Funktion hast, die alle data-i18n Attribute neu rendert (z.B. translateUI()), rufe sie hier auf:
+            // translateUI(); 
         }
     }
 
