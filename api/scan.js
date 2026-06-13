@@ -16,6 +16,7 @@ export const config = {
 const FREE_TRIAL_LIMIT = 5;
 
 // ── System-Prompt für OpenAI ───────────────────────────────────────────────
+// WICHTIG: Hier wurde das Format auf ein JSON-Objekt mit dem Key "flashcards" umgestellt.
 const SYSTEM_PROMPT = `Du bist ein präziser Daten-Extraktor und didaktischer Lern-Assistent für Studenten (insbesondere Medizin, Jura und MINT).
 Analysiere das hochgeladene Bild. Dies kann eine Tabelle, eine Liste, ein Vorlesungsskript, ein Fließtext oder ein Buchauszug sein.
 Ignoriere rein dekorative Elemente, Trennlinien, Icons, Seitenzahlen und irrelevante Randnotizen.
@@ -34,9 +35,8 @@ Rückgabe-Parameter:
 
 "back": Die präzise Erklärung, Definition oder die Antwort.
 
-Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Array zurück. Achte darauf, Anführungszeichen im Text korrekt zu escapen.
-Format: [{"front": "Begriff oder Frage", "back": "Erklärung oder Antwort"}, ...]
-Kein erklärender Text, keine Markdown-Blöcke (keine \`\`\`json Formatierung), nur das reine, valide JSON-Array.`;
+Gib das Ergebnis AUSSCHLIESSLICH als gültiges JSON-Objekt zurück, das ein Array namens "flashcards" enthält. Achte darauf, Anführungszeichen im Text korrekt zu escapen.
+Format: { "flashcards": [{"front": "Begriff oder Frage", "back": "Erklärung oder Antwort"}] }`;
 
 // ── Upstash Redis: INCR (für Free-Trial IP-Zähler) ────────────────────────
 async function redisIncr(key) {
@@ -188,11 +188,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // ════════════════════════════════════════════════════════════════
-    // C) MASTER KEY → keinerlei Checks, direkt weiter
-    // ════════════════════════════════════════════════════════════════
-    // (kein Code nötig – alle Checks oben werden übersprungen)
-
     // ── Bild aus Request-Body holen ────────────────────────────────
     const { image } = req.body || {};
     if (!image || typeof image !== 'string') {
@@ -212,6 +207,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model:      'gpt-4o-mini',
         max_tokens: 2048,
+        response_format: { type: 'json_object' }, // <-- HIER IST DIE MAGIE
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           {
@@ -221,7 +217,8 @@ export default async function handler(req, res) {
                 type:      'image_url',
                 image_url: { url: `data:image/jpeg;base64,${base64Data}`, detail: 'high' },
               },
-              { type: 'text', text: 'Extrahiere alle Vokabelpaare aus diesem Bild als JSON-Array.' },
+              // <-- User Message angepasst, damit kein Konflikt entsteht
+              { type: 'text', text: 'Extrahiere die wichtigsten Konzepte oder Vokabelpaare aus diesem Bild und antworte im geforderten JSON-Format.' },
             ],
           },
         ],
@@ -233,15 +230,19 @@ export default async function handler(req, res) {
     }
 
     const openAIData = await openAIResponse.json();
-    const rawContent = openAIData.choices?.[0]?.message?.content || '[]';
+    const rawContent = openAIData.choices?.[0]?.message?.content || '{}';
 
-    // JSON parsen (Markdown-Fences entfernen falls vorhanden)
-    const cleaned = rawContent.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    // ── JSON parsen (Kein Regex-Cleaning mehr nötig!) ────────────────
     let pairs;
     try {
-      pairs = JSON.parse(cleaned);
-      if (!Array.isArray(pairs)) throw new Error('Kein Array');
-    } catch {
+      const parsedData = JSON.parse(rawContent);
+      pairs = parsedData.flashcards; // <-- Zugriff auf das Array im Objekt
+      
+      if (!Array.isArray(pairs)) {
+        throw new Error('Fehlendes Array im "flashcards" Schlüssel');
+      }
+    } catch (parseError) {
+      console.error('[PARSE ERROR]', parseError, 'Raw Content:', rawContent);
       return res.status(422).json({ error: 'Ungültiges JSON vom AI-Modell.', raw: rawContent });
     }
 
