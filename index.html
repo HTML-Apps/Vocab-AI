@@ -149,6 +149,14 @@
         .modal-sheet { background: #fff; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes badgePop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%       { transform: translateX(-6px); }
+            40%       { transform: translateX(6px); }
+            60%       { transform: translateX(-4px); }
+            80%       { transform: translateX(4px); }
+        }
+        .animate-shake { animation: shake 0.5s ease; }
 
         /* ── Scan deck multiselect chips ── */
         .deck-chip {
@@ -371,7 +379,17 @@
                 </div>
             </div>
 
-            <button onclick="finishOnboarding()" class="mt-10 w-full max-w-sm accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95" data-i18n="onboarding_cta"></button>
+            <div class="mt-8 w-full max-w-sm">
+                <label id="agb-label" class="flex items-start gap-3 cursor-pointer select-none">
+                    <input type="checkbox" id="agb-checkbox"
+                           class="mt-0.5 w-5 h-5 flex-shrink-0 rounded accent-checkbox cursor-pointer"
+                           style="accent-color: var(--accent);">
+                    <span id="agb-label-text" class="text-sm text-muted leading-snug"></span>
+                </label>
+                <p id="agb-error" class="mt-2 text-xs text-red-500 hidden" data-i18n="onboarding_agb_error"></p>
+            </div>
+
+            <button onclick="finishOnboarding()" class="mt-4 w-full max-w-sm accent-bg accent-bg-hover text-white py-4 rounded-2xl font-bold accent-shadow transition-colors active:scale-95" data-i18n="onboarding_cta"></button>
         </section>
 
         <!-- ─── View: Scan ─── -->
@@ -765,6 +783,8 @@
             onboarding_step3:    'KI erstellt automatisch die richtigen Karteikarten.',
             onboarding_step4:    'Lerne effizient mit smarten Karteikarten.',
             onboarding_cta:      'Jetzt starten',
+            onboarding_agb_checkbox: 'Ich habe die %AGB% und %Datenschutzerklärung% gelesen und akzeptiere diese.',
+            onboarding_agb_error:    'Bitte akzeptiere die AGB und Datenschutzerklärung, um fortzufahren.',
             import_title:        'Backup importieren',
             export_title:        'Backup exportieren',
             settings_title:      'Einstellungen',
@@ -966,6 +986,8 @@ Hendrik Junker
             onboarding_step3:    'AI automatically creates the correct flashcards.',
             onboarding_step4:    'Learn efficiently with smart flashcards.',
             onboarding_cta:      'Get Started',
+            onboarding_agb_checkbox: 'I have read and accept the %Terms of Service% and %Privacy Policy%.',
+            onboarding_agb_error:    'Please accept the Terms of Service and Privacy Policy to continue.',
             import_title:        'Import backup',
             export_title:        'Export backup',
             settings_title:      'Settings',
@@ -1151,6 +1173,7 @@ You have the right to object at any time to the processing of personal data conc
         updateGoalUI();
         checkBackupStatus();
         updateScanCounterUI();
+        renderAgbLabel();
 
         const activeView = document.querySelector('.view:not(.hidden)');
         if (activeView) {
@@ -1192,7 +1215,8 @@ You have the right to object at any time to the processing of personal data conc
     // ══════════════════════════════════════════════
     const DB_NAME    = 'VocabAI';
     const DB_VERSION = 1;
-    const STORE_META  = 'meta';
+    const STORE_META         = 'meta';
+    const CURRENT_AGB_VERSION = '1.0';
     const STORE_DECKS = 'decks';
 
     let db = null;
@@ -1288,10 +1312,24 @@ You have the right to object at any time to the processing of personal data conc
         checkStreak();
         populateScanDeckSelector();
 
-        const onboarded = await dbGet(STORE_META, 'onboarded');
-        if (!onboarded) {
-            document.getElementById('view-onboarding').classList.remove('hidden');
+        const onboarded  = await dbGet(STORE_META, 'onboarded');
+        const agbVersion = await dbGet(STORE_META, 'agb_version');
+        const agbValid   = agbVersion === CURRENT_AGB_VERSION;
+
+        if (!onboarded || !agbValid) {
+            const onboardingEl = document.getElementById('view-onboarding');
+            onboardingEl.classList.remove('hidden');
             updateAccentDots();
+
+            // Falls nur neue AGB-Zustimmung nötig (bereits onboarded): CTA-Text anpassen
+            if (onboarded && !agbValid) {
+                const ctaBtn = onboardingEl.querySelector('[data-i18n="onboarding_cta"]');
+                if (ctaBtn) {
+                    ctaBtn.removeAttribute('data-i18n');
+                    const lang = document.documentElement.lang || 'de';
+                    ctaBtn.textContent = lang === 'de' ? 'Neue AGB akzeptieren' : 'Accept updated Terms';
+                }
+            }
         } else {
             showMainUI();
             const hasWords = decks.some(d => d.words.length > 0);
@@ -1461,9 +1499,35 @@ You have the right to object at any time to the processing of personal data conc
     }
 
     async function finishOnboarding() {
-        await dbPut(STORE_META, true, 'onboarded');
+        const checkbox = document.getElementById('agb-checkbox');
+        const errorEl  = document.getElementById('agb-error');
+        const label    = document.getElementById('agb-label');
+
+        if (!checkbox.checked) {
+            // Visuelles Feedback: roter Fehlertext + kurze Shake-Animation
+            errorEl.classList.remove('hidden');
+            label.classList.add('animate-shake');
+            setTimeout(() => label.classList.remove('animate-shake'), 600);
+            return;
+        }
+
+        errorEl.classList.add('hidden');
+        await dbPut(STORE_META, true,              'onboarded');
+        await dbPut(STORE_META, true,              'agb_accepted');
+        await dbPut(STORE_META, CURRENT_AGB_VERSION, 'agb_version');
         showMainUI();
         switchView('scan');
+    }
+
+    function renderAgbLabel() {
+        const el = document.getElementById('agb-label-text');
+        if (!el) return;
+        const raw = t('onboarding_agb_checkbox');
+        // Ersetze %Platzhalter% durch klickbare Spans, die openLegalModal() aufrufen
+        const html = raw.replace(/%([^%]+)%/g,
+            '<button type="button" onclick="openLegalModal()" ' +
+            'class="accent-text underline underline-offset-2 font-medium hover:opacity-80 transition-opacity">$1</button>');
+        el.innerHTML = html;
     }
 
     function switchView(viewName) {
