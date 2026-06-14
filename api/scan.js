@@ -119,8 +119,7 @@ export default async function handler(req, res) {
 
   // Authorization-Header auslesen
   const authHeader = req.headers['authorization'] || '';
-  // const licenseKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-  const licenseKey = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const licenseKey = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
 
   // Modus bestimmen
   const isMasterKey   = licenseKey === process.env.SECRET_MASTER_KEY;
