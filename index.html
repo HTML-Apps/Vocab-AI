@@ -550,6 +550,13 @@
                     <div id="goal-progress" class="accent-bg h-3 rounded-full transition-all duration-500" style="width:0%"></div>
                 </div>
             </div>
+            <div class="bg-card p-6 rounded-3xl shadow-sm border border-subtle mt-5">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="text-lg font-bold" data-i18n="goals_last_backup_title"></h3>
+                    <i class="fa-solid fa-cloud-arrow-down text-muted text-xl"></i>
+                </div>
+                <p class="text-sm text-muted font-medium" id="last-backup-text"></p>
+            </div>
         </section>
 
     </main>
@@ -853,6 +860,11 @@
             goals_daily_title:   'Tagesziel',
             goals_change:        'Ändern',
             goals_cards_learned: 'Karten gelernt',
+
+            goals_last_backup_title: 'Letztes Backup',
+            goals_last_backup_never: 'Noch nie gesichert',
+            goals_last_backup: (days) => days === 0 ? 'Heute' : (days === 1 ? 'Vor 1 Tag' : `Vor ${days} Tagen`),
+
             settings_title_modal: 'Einstellungen',
             settings_appearance:  'Erscheinungsbild',
             settings_theme_dark:  'Dark',
@@ -1053,6 +1065,11 @@ Sie haben das Recht, jederzeit gegen die Verarbeitung von personenbezogenen Date
             goals_daily_title:   'Daily goal',
             goals_change:        'Change',
             goals_cards_learned: 'cards learned',
+
+            goals_last_backup_title: 'Last Backup',
+            goals_last_backup_never: 'Never backed up',
+            goals_last_backup: (days) => days === 0 ? 'Today' : (days === 1 ? '1 day ago' : `${days} days ago`),
+
             settings_title_modal: 'Settings',
             settings_appearance:  'Appearance',
             settings_theme_dark:  'Dark',
@@ -1324,7 +1341,9 @@ You have the right to object at any time to the processing of personal data conc
         accent:              'indigo',
         lastBackupWordCount: 0,
         lastLearnDeckId:     null,
-        scanCount:           0
+        scanCount:           0,
+        lastSelectedDeckIds: [],
+        lastBackupDate:      null
     };
 
     let decks = [];
@@ -1679,8 +1698,12 @@ You have the right to object at any time to the processing of personal data conc
         a.href = dataStr;
         a.download = `vocab_backup_${new Date().toISOString().slice(0,10)}.json`;
         document.body.appendChild(a); a.click(); a.remove();
+        
         appState.lastBackupWordCount = totalWordCount();
+        appState.lastBackupDate = Date.now(); // NEU: Zeitstempel speichern
         await saveState();
+
+        updateGoalUI(); // NEU: Ansicht sofort aktualisieren
     }
 
     function checkBackupStatus() {
@@ -1702,24 +1725,48 @@ You have the right to object at any time to the processing of personal data conc
         const optionsEl = document.getElementById('scan-deck-options');
         if (!optionsEl) return;
         const filtered = decks.filter(d => d.id !== 'difficult_deck');
-        optionsEl.innerHTML = filtered.map((d, i) => `
+
+        // Gespeicherte IDs laden, validieren (falls Liste gelöscht wurde)
+        let selectedIds = appState.lastSelectedDeckIds || [];
+        const validSelectedIds = selectedIds.filter(id => filtered.some(d => d.id === id));
+        
+        // Fallback auf erste Liste, falls nichts (Gültiges) ausgewählt ist
+        if (validSelectedIds.length === 0 && filtered.length > 0) {
+            selectedIds = [filtered[0].id];
+        } else {
+            selectedIds = validSelectedIds;
+        }
+
+        optionsEl.innerHTML = filtered.map((d) => {
+            const isChecked = selectedIds.includes(d.id) ? 'checked' : '';
+            return `
             <label class="deck-option-row">
-                <input type="checkbox" class="scan-deck-checkbox" value="${d.id}" ${i === 0 ? 'checked' : ''}>
+                <input type="checkbox" class="scan-deck-checkbox" value="${d.id}" ${isChecked}>
                 <span class="text-sm truncate flex-1">${escapeHtml(d.name)}</span>
                 <span class="text-muted text-xs flex-shrink-0">${d.words.length} ${t('deck_words_suffix')}</span>
             </label>
-        `).join('');
-        // Bind change listeners to update chips
+            `;
+        }).join('');
+
+        // Event-Listener binden
         optionsEl.querySelectorAll('.scan-deck-checkbox').forEach(cb => {
-            cb.addEventListener('change', _updateScanDeckChips);
+            cb.addEventListener('change', () => _updateScanDeckChips(true)); // true = speichern aktivieren
         });
-        _updateScanDeckChips();
+        
+        _updateScanDeckChips(false); // false = nur visuell updaten, noch nicht in DB speichern beim reinen Rendern
     }
 
-    function _updateScanDeckChips() {
+    function _updateScanDeckChips(save = false) {
         const chipsEl = document.getElementById('scan-deck-chips');
         if (!chipsEl) return;
         const checked = document.querySelectorAll('.scan-deck-checkbox:checked');
+
+        // Neue Auswahl im State speichern, wenn Parameter true ist
+        if (save) {
+            appState.lastSelectedDeckIds = Array.from(checked).map(cb => parseInt(cb.value, 10));
+            saveState();
+        }
+
         if (checked.length === 0) {
             chipsEl.innerHTML = `<span class="text-muted text-xs">–</span>`;
             return;
@@ -2532,6 +2579,19 @@ You have the right to object at any time to the processing of personal data conc
         }
         if (el2) el2.textContent = `${appState.learnedToday} / ${appState.dailyGoal} ${t('goals_cards_learned')}`;
         if (el3) el3.style.width = `${Math.min((appState.learnedToday / appState.dailyGoal) * 100, 100)}%`;
+
+        // --- NEU: Backup Text aktualisieren ---
+        const backupTextEl = document.getElementById('last-backup-text');
+        if (backupTextEl) {
+            if (!appState.lastBackupDate) {
+                backupTextEl.textContent = t('goals_last_backup_never');
+            } else {
+                const diffMs = Date.now() - appState.lastBackupDate;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                backupTextEl.textContent = t('goals_last_backup')(diffDays);
+            }
+        }
+        // --------------------------------------
     }
 
     function escapeHtml(str) {
